@@ -1,0 +1,8 @@
+node_modules/
+.env
+.DS_Store
+
+# Optional: Uncomment if you don't want to commit database files
+# orders.json
+# processed_events.json
+
