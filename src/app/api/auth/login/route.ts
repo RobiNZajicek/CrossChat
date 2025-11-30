@@ -1,0 +1,45 @@
+import { NextResponse } from "next/server";
+import { findUserByUsername } from "@/lib/db";
+import bcrypt from "bcryptjs";
+import { cookies } from "next/headers";
+
+export const runtime = "nodejs";
+
+export async function POST(req: Request) {
+  try {
+    const { username, password } = await req.json();
+
+    const user = findUserByUsername(username);
+    if (!user) {
+      return NextResponse.json(
+        { error: "Invalid username or password" },
+        { status: 401 }
+      );
+    }
+
+    const match = await bcrypt.compare(password, user.passwordHash);
+    if (!match) {
+      return NextResponse.json(
+        { error: "Invalid username or password" },
+        { status: 401 }
+      );
+    }
+
+    // Set simple session cookie
+    cookies().set("streamer_session", JSON.stringify({ id: user.id, username: user.username }), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+    });
+
+    return NextResponse.json({ ok: true, user: { id: user.id, username: user.username } });
+  } catch (error) {
+    console.error("Login error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+

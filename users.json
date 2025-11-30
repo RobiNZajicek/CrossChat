@@ -1,0 +1,36 @@
+[
+  {
+    "id": "990422aa-6e44-4b1c-949c-133fc1c8c440",
+    "username": "zajicekrobin3@gmail.com",
+    "passwordHash": "$2b$10$MQc3QlRCY4JeRqsSx5E1k.mP4dhRZ2Q4Y8zVUb3MCvMdXKPNNFpAO",
+    "createdAt": 1764533085799,
+    "sessions": [
+      {
+        "id": "session-1764534408516",
+        "startedAt": 1764534408516,
+        "messageCount": 0,
+        "messagesFile": "chat-history-990422aa-6e44-4b1c-949c-133fc1c8c440.json",
+        "endedAt": 1764534410680
+      },
+      {
+        "id": "session-1764534478705",
+        "startedAt": 1764534478705,
+        "messageCount": 0,
+        "messagesFile": "chat-history-990422aa-6e44-4b1c-949c-133fc1c8c440.json"
+      },
+      {
+        "id": "session-1764534724276",
+        "startedAt": 1764534724276,
+        "messageCount": 0,
+        "messagesFile": "chat-history-990422aa-6e44-4b1c-949c-133fc1c8c440.json"
+      },
+      {
+        "id": "session-1764534730193",
+        "startedAt": 1764534730193,
+        "messageCount": 0,
+        "messagesFile": "chat-history-990422aa-6e44-4b1c-949c-133fc1c8c440.json"
+      }
+    ],
+    "activeSessionId": "session-1764534730193"
+  }
+]
