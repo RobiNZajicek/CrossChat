@@ -128,6 +128,6 @@ export default function LandingPage() {
           </form>
         </div>
       </section>
-    </div>
+      </div>
   );
 }

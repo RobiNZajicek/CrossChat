@@ -85,21 +85,21 @@ graph TD
 ### Installation
 
 1.  **Clone & Install**
-    ```bash
+   ```bash
     git clone https://github.com/yourusername/crosschat.git
     cd crosschat
-    npm install
-    ```
+   npm install
+   ```
 
 2.  **Run Development Server**
-    ```bash
-    npm run dev
-    ```
+   ```bash
+   npm run dev
+   ```
     *   App: `http://localhost:3000`
     *   Socket Endpoint: `http://localhost:3000/api/socket`
 
 3.  **Build for Production**
-    ```bash
+   ```bash
     npm run build
     npm start
     ```
