@@ -16,10 +16,15 @@ export async function GET(request: Request) {
 
   try {
     const user = JSON.parse(session.value);
+    console.log(`[API Messages] Loading ${archive ? `archive: ${archive}` : `active chat for user ${user.id}`}`);
+    
     // If archive param exists, load that specific file, else load active history
     const messages = loadHistory(user.id, archive || undefined);
+    console.log(`[API Messages] Loaded ${messages.length} messages`);
+    
     return NextResponse.json({ messages });
-  } catch {
+  } catch (error) {
+    console.error(`[API Messages] Error loading messages:`, error);
     return NextResponse.json({ messages: [] });
   }
 }

@@ -127,9 +127,17 @@ export function endSession(userId: string) {
       const msgs = JSON.parse(data);
       session.messageCount = msgs.length;
       
-      // Presune soubor do archivu
-      fs.renameSync(activeFile, archivePath);
+      // Zkopiruje soubor misto prejmenovani (bezpecnejsi)
+      fs.copyFileSync(activeFile, archivePath);
       session.messagesFile = archiveFile;
+      
+      console.log(`[Archive] Created ${archiveFile} with ${msgs.length} messages`);
+    } else {
+      // Pokud aktivni soubor neexistuje, vytvori prazdny archiv
+      session.messageCount = 0;
+      session.messagesFile = archiveFile;
+      fs.writeFileSync(archivePath, JSON.stringify([], null, 2));
+      console.log(`[Archive] Created empty archive ${archiveFile}`);
     }
   }
 
@@ -168,6 +176,11 @@ export function saveMessage(message: ChatMessage) {
     }
     
     fs.writeFileSync(file, JSON.stringify(history, null, 2));
+    
+    // Debug log - ale jen kazdou 10. zpravu, aby to nespamovalo
+    if (history.length % 10 === 0) {
+      console.log(`[Persistence] Saved message #${history.length} to ${path.basename(file)} (streamer: ${streamerId})`);
+    }
   } catch (error) {
     console.error("[Persistence] Failed to save message:", error);
   }
@@ -181,15 +194,21 @@ export function loadHistory(streamerId?: string, archiveFile?: string): ChatMess
     if (archiveFile) {
       // Cteni z konkretniho archivu
       file = path.join(process.cwd(), archiveFile);
+      console.log(`[DB] Loading archive: ${archiveFile}`);
     } else {
       // Cteni aktivniho chatu
       const id = streamerId || "global";
       file = getHistoryFile(id);
+      console.log(`[DB] Loading active chat for streamer: ${id}`);
     }
     
     if (fs.existsSync(file)) {
       const data = fs.readFileSync(file, "utf-8");
-      return JSON.parse(data) as ChatMessage[];
+      const messages = JSON.parse(data) as ChatMessage[];
+      console.log(`[DB] Successfully loaded ${messages.length} messages from ${path.basename(file)}`);
+      return messages;
+    } else {
+      console.log(`[DB] File not found: ${path.basename(file)}`);
     }
   } catch (error) {
     console.error("[Persistence] Failed to load history:", error);

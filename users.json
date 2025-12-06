@@ -39,10 +39,10 @@
       {
         "id": "session-1764857682795",
         "startedAt": 1764857682795,
-        "messageCount": 0,
-        "messagesFile": "chat-history-990422aa-6e44-4b1c-949c-133fc1c8c440.json"
+        "messageCount": 3,
+        "messagesFile": "archive-990422aa-6e44-4b1c-949c-133fc1c8c440-session-1764857682795.json",
+        "endedAt": 1765061628897
       }
-    ],
-    "activeSessionId": "session-1764857682795"
+    ]
   }
 ]

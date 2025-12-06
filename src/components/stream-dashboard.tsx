@@ -203,9 +203,12 @@ export function StreamDashboard({ streamerId }: Props) {
     let url = "/api/messages";
     if (archive) url += `?archive=${archive}`;
 
+    console.log(`[Dashboard] Fetching messages from:`, archive ? `archive ${archive}` : 'active chat');
+
     fetch(url, { cache: "no-store" })
       .then(res => res.json())
       .then((data: { messages?: ChatMessage[] }) => {
+        console.log(`[Dashboard] Received ${data.messages?.length || 0} messages`);
         if (data.messages?.length) {
           if (archive) {
              setMessages(sortMessages(data.messages));
@@ -214,6 +217,7 @@ export function StreamDashboard({ streamerId }: Props) {
              setMessages(sortMessages(data.messages));
           }
         } else if (archive) {
+            console.log(`[Dashboard] Archive is empty or not found`);
             setMessages([]);
         }
       })
