@@ -42,7 +42,49 @@
         "messageCount": 3,
         "messagesFile": "archive-990422aa-6e44-4b1c-949c-133fc1c8c440-session-1764857682795.json",
         "endedAt": 1765061628897
+      },
+      {
+        "id": "session-1765116034854",
+        "startedAt": 1765116034854,
+        "messageCount": 0,
+        "messagesFile": "chat-history-990422aa-6e44-4b1c-949c-133fc1c8c440.json"
+      },
+      {
+        "id": "session-1765116620280",
+        "startedAt": 1765116620280,
+        "messageCount": 0,
+        "messagesFile": "chat-history-990422aa-6e44-4b1c-949c-133fc1c8c440.json"
+      },
+      {
+        "id": "session-1765116620705",
+        "startedAt": 1765116620705,
+        "messageCount": 0,
+        "messagesFile": "chat-history-990422aa-6e44-4b1c-949c-133fc1c8c440.json"
+      },
+      {
+        "id": "session-1765116621613",
+        "startedAt": 1765116621613,
+        "messageCount": 0,
+        "messagesFile": "archive-990422aa-6e44-4b1c-949c-133fc1c8c440-session-1765116621613.json",
+        "endedAt": 1765119547260
+      },
+      {
+        "id": "session-1765119548060",
+        "startedAt": 1765119548060,
+        "messageCount": 1,
+        "messagesFile": "archive-990422aa-6e44-4b1c-949c-133fc1c8c440-session-1765119548060.json",
+        "endedAt": 1765119571538
       }
-    ]
+    ],
+    "stats": {
+      "totalMessages": 1,
+      "totalStreams": 5,
+      "subscriberCounts": {
+        "twitch": 0,
+        "youtube": 0,
+        "kick": 0
+      },
+      "lastViewCount": 687
+    }
   }
 ]

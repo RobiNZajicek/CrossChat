@@ -28,6 +28,22 @@ export type User = {
   createdAt: number;
   activeSessionId?: string; // Aktualne bezici stream
   sessions: StreamSession[]; // Historie streamu
+  stats?: {
+    totalMessages: number;    // Celkovy pocet zprav pres vsechny streamy
+    totalStreams: number;     // Celkovy pocet streamu
+    lastViewCount?: number;   // View count z posledniho streamu (simulovany)
+    subscriberCounts?: {      // Pocet subscriberu na kazde platforme
+      twitch: number;
+      youtube: number;
+      kick: number;
+      facebook: number;
+      tiktok: number;
+      discord: number;
+      bilibili: number;
+      x: number;
+      trovo: number;
+    };
+  };
 };
 
 // =============================================================================
@@ -97,6 +113,16 @@ export function startNewSession(userId: string): StreamSession {
   user.sessions = user.sessions || [];
   user.sessions.push(newSession);
   
+  // Aktualizuje statistiky
+  if (!user.stats) {
+    user.stats = {
+      totalMessages: 0,
+      totalStreams: 0,
+      subscriberCounts: { twitch: 0, youtube: 0, kick: 0 }
+    };
+  }
+  user.stats.totalStreams++;
+  
   // Smaze aktualni chat soubor (zacina se s cisty stolem)
   const activeFile = path.join(process.cwd(), newSession.messagesFile);
   if (fs.existsSync(activeFile)) {
@@ -132,6 +158,17 @@ export function endSession(userId: string) {
       session.messagesFile = archiveFile;
       
       console.log(`[Archive] Created ${archiveFile} with ${msgs.length} messages`);
+      
+      // Aktualizuje statistiky uzivatele
+      if (!user.stats) {
+        user.stats = {
+          totalMessages: 0,
+          totalStreams: 0,
+          subscriberCounts: { twitch: 0, youtube: 0, kick: 0 }
+        };
+      }
+      user.stats.totalMessages += msgs.length;
+      user.stats.lastViewCount = Math.floor(Math.random() * 1000) + 50; // Simulovany view count
     } else {
       // Pokud aktivni soubor neexistuje, vytvori prazdny archiv
       session.messageCount = 0;

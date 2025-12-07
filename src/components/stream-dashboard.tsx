@@ -14,8 +14,16 @@ import {
   Activity,
   History,
   Play,
-  Square
+  Square,
+  Clock,
+  Radio,
+  Facebook,
+  Music2,
+  Gamepad2,
+  Twitter,
+  Tv
 } from "lucide-react";
+import { Toast } from "./toast-notification";
 import type {
   ChatMessage,
   ProducerPayload,
@@ -42,7 +50,7 @@ const PLATFORM_CONFIG: Record<
     tag: "bg-purple-500/20 text-purple-200 border border-purple-500/30",
     statusPill: "bg-purple-500/15 text-purple-200",
     gradient: "from-purple-600/50 via-purple-500/20 to-transparent",
-    description: "Twitch simulation with bits, subs, and hype trains.",
+    description: "Twitch chat with bits, subs, and hype trains.",
     icon: Twitch,
   },
   YouTube: {
@@ -52,7 +60,7 @@ const PLATFORM_CONFIG: Record<
     tag: "bg-red-500/20 text-red-200 border border-red-500/30",
     statusPill: "bg-red-500/15 text-red-200",
     gradient: "from-red-600/50 via-red-500/20 to-transparent",
-    description: "YouTube Live simulation with SuperChats and memberships.",
+    description: "YouTube Live with SuperChats and memberships.",
     icon: Youtube,
   },
   Kick: {
@@ -62,8 +70,68 @@ const PLATFORM_CONFIG: Record<
     tag: "bg-emerald-500/20 text-emerald-200 border border-emerald-500/30",
     statusPill: "bg-emerald-500/15 text-emerald-200",
     gradient: "from-emerald-600/50 via-emerald-500/20 to-transparent",
-    description: "Kick simulation with raw, low-latency chat events.",
+    description: "Kick chat with low-latency events.",
     icon: MessageCircle,
+  },
+  Facebook: {
+    slug: "facebook",
+    accent: "text-blue-400",
+    accentRing: "ring-blue-500/40",
+    tag: "bg-blue-500/20 text-blue-200 border border-blue-500/30",
+    statusPill: "bg-blue-500/15 text-blue-200",
+    gradient: "from-blue-600/50 via-blue-500/20 to-transparent",
+    description: "Facebook Gaming live chat.",
+    icon: Facebook,
+  },
+  TikTok: {
+    slug: "tiktok",
+    accent: "text-pink-400",
+    accentRing: "ring-pink-500/40",
+    tag: "bg-pink-500/20 text-pink-200 border border-pink-500/30",
+    statusPill: "bg-pink-500/15 text-pink-200",
+    gradient: "from-pink-600/50 via-pink-500/20 to-transparent",
+    description: "TikTok LIVE chat and gifts.",
+    icon: Music2,
+  },
+  Discord: {
+    slug: "discord",
+    accent: "text-indigo-400",
+    accentRing: "ring-indigo-500/40",
+    tag: "bg-indigo-500/20 text-indigo-200 border border-indigo-500/30",
+    statusPill: "bg-indigo-500/15 text-indigo-200",
+    gradient: "from-indigo-600/50 via-indigo-500/20 to-transparent",
+    description: "Discord server messages.",
+    icon: Gamepad2,
+  },
+  Bilibili: {
+    slug: "bilibili",
+    accent: "text-cyan-400",
+    accentRing: "ring-cyan-500/40",
+    tag: "bg-cyan-500/20 text-cyan-200 border border-cyan-500/30",
+    statusPill: "bg-cyan-500/15 text-cyan-200",
+    gradient: "from-cyan-600/50 via-cyan-500/20 to-transparent",
+    description: "Bilibili live danmaku chat.",
+    icon: Tv,
+  },
+  X: {
+    slug: "x",
+    accent: "text-gray-400",
+    accentRing: "ring-gray-500/40",
+    tag: "bg-gray-500/20 text-gray-200 border border-gray-500/30",
+    statusPill: "bg-gray-500/15 text-gray-200",
+    gradient: "from-gray-600/50 via-gray-500/20 to-transparent",
+    description: "X (Twitter) LIVE chat.",
+    icon: Twitter,
+  },
+  Trovo: {
+    slug: "trovo",
+    accent: "text-teal-400",
+    accentRing: "ring-teal-500/40",
+    tag: "bg-teal-500/20 text-teal-200 border border-teal-500/30",
+    statusPill: "bg-teal-500/15 text-teal-200",
+    gradient: "from-teal-600/50 via-teal-500/20 to-transparent",
+    description: "Trovo live stream chat.",
+    icon: Radio,
   },
 };
 
@@ -96,6 +164,8 @@ const sortMessages = (messages: ChatMessage[]) =>
 
 interface Props {
   streamerId: string;
+  defaultView?: "live" | "history";
+  onStreamEnd?: () => void;
 }
 
 type Session = {
@@ -106,19 +176,29 @@ type Session = {
   messagesFile: string;
 };
 
-export function StreamDashboard({ streamerId }: Props) {
+export function StreamDashboard({ streamerId, defaultView = "live", onStreamEnd }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [socketId, setSocketId] = useState<string | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [activePlatform, setActivePlatform] = useState<ProducerPlatform>("Twitch");
-  const [view, setView] = useState<"live" | "history">("live");
+  const [view, setView] = useState<"live" | "history">(defaultView);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [forms, setForms] = useState<Record<ProducerPlatform, FormState>>({
     Twitch: { ...INITIAL_FORM },
     YouTube: { ...INITIAL_FORM },
     Kick: { ...INITIAL_FORM },
+    Facebook: { ...INITIAL_FORM },
+    TikTok: { ...INITIAL_FORM },
+    Discord: { ...INITIAL_FORM },
+    Bilibili: { ...INITIAL_FORM },
+    X: { ...INITIAL_FORM },
+    Trovo: { ...INITIAL_FORM },
   });
+  const [streamStartTime, setStreamStartTime] = useState<number | null>(null);
+  const [liveTime, setLiveTime] = useState<string>("00:00:00");
+  const [showToast, setShowToast] = useState(false);
+  const [toastDuration, setToastDuration] = useState<string>("");
   
   const feedRef = useRef<HTMLDivElement>(null);
   const messageIds = useRef<Set<string>>(new Set());
@@ -245,6 +325,20 @@ export function StreamDashboard({ streamerId }: Props) {
     }
   }, [messages]);
 
+  // Live timer effect
+  useEffect(() => {
+    if (view === "live" && streamStartTime) {
+      const interval = setInterval(() => {
+        const elapsed = Date.now() - streamStartTime;
+        const hours = Math.floor(elapsed / 3600000);
+        const minutes = Math.floor((elapsed % 3600000) / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        setLiveTime(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [view, streamStartTime]);
+
   const handleControl = async (action: "start" | "end") => {
       await fetch("/api/stream/control", {
           method: "POST",
@@ -253,10 +347,24 @@ export function StreamDashboard({ streamerId }: Props) {
       if (action === "start") {
           setMessages([]);
           messageIds.current = new Set();
+          setStreamStartTime(Date.now());
           fetchMessages(); // Refresh immediately after starting
       }
       if (action === "end") {
+          // Calculate stream duration
+          if (streamStartTime) {
+            const duration = Date.now() - streamStartTime;
+            const hours = Math.floor(duration / 3600000);
+            const minutes = Math.floor((duration % 3600000) / 60000);
+            const durationText = hours > 0 
+              ? `${hours}h ${minutes}m` 
+              : `${minutes} minutes`;
+            setToastDuration(durationText);
+            setShowToast(true);
+          }
+          setStreamStartTime(null);
           setMessages([]);
+          onStreamEnd?.();
       }
   };
 
@@ -333,25 +441,47 @@ export function StreamDashboard({ streamerId }: Props) {
   const activeForm = forms[activePlatform]; // Defined correctly here
 
   return (
-    <div className="grid h-[calc(100vh-12rem)] gap-8 lg:grid-cols-[1fr_400px]">
-      <section className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0e0e10] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-white/5 bg-[#18181b] px-4 py-3">
-          <div className="flex items-center gap-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-white/90">
-              {view === "live" ? "Live Feed" : "Stream Archive"}
-            </h2>
-            
-            {view === "live" && (
-                <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium border ${
-                isConnected 
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                    : "bg-red-500/10 text-red-400 border-red-500/20"
-                }`}>
-                {isConnected ? <Wifi size={10} /> : <WifiOff size={10} />}
-                {isConnected ? "LIVE" : "OFFLINE"}
+    <>
+      {showToast && (
+        <Toast
+          message="Your stream has been archived successfully"
+          duration={toastDuration}
+          onClose={() => setShowToast(false)}
+        />
+      )}
+      
+      <div className="grid h-[calc(100vh-12rem)] gap-8 lg:grid-cols-[1fr_400px]">
+        <section className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0e0e10] shadow-2xl">
+          <div className="flex items-center justify-between border-b border-white/5 bg-[#18181b] px-4 py-3">
+            <div className="flex items-center gap-4">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-white/90">
+                {view === "live" ? "Live Feed" : "Stream Archive"}
+              </h2>
+              
+              {view === "live" && streamStartTime && (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium border bg-red-500/10 text-red-400 border-red-500/20 animate-pulse">
+                    <Radio size={10} />
+                    LIVE
+                  </div>
+                  <div className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium border bg-orange-500/10 text-orange-400 border-orange-500/20">
+                    <Clock size={10} />
+                    {liveTime}
+                  </div>
                 </div>
-            )}
-          </div>
+              )}
+              
+              {view === "live" && !streamStartTime && (
+                  <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium border ${
+                  isConnected 
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                      : "bg-red-500/10 text-red-400 border-red-500/20"
+                  }`}>
+                  {isConnected ? <Wifi size={10} /> : <WifiOff size={10} />}
+                  {isConnected ? "CONNECTED" : "OFFLINE"}
+                  </div>
+              )}
+            </div>
           
           <div className="flex items-center gap-2">
              <button 
@@ -435,7 +565,8 @@ export function StreamDashboard({ streamerId }: Props) {
             handleSubmit={handleSubmit}
         />
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

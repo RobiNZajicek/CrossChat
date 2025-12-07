@@ -4,7 +4,16 @@
 // =============================================================================
 
 // Podporovane platformy
-export type ProducerPlatform = "Twitch" | "YouTube" | "Kick";
+export type ProducerPlatform = 
+  | "Twitch" 
+  | "YouTube" 
+  | "Kick" 
+  | "Facebook" 
+  | "TikTok" 
+  | "Discord" 
+  | "Bilibili" 
+  | "X" 
+  | "Trovo";
 
 // Typ pro chat zpravu (ulozena v DB / poslana klientum)
 export interface ChatMessage {
