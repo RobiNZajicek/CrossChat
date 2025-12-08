@@ -1,13 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #050609;
-  --surface: #0f1015;
-  --foreground: #f8fafc;
-  --muted: #9ba3b4;
-  --twitch: #6366f1;
-  --youtube: #ef4444;
-  --kick: #10b981;
+  --background: #050505;
+  --surface: #0e0e10;
+  --surface-2: #18181b;
+  --foreground: #fafafa;
+  --muted: #71717a;
+  --accent: #f97316;
+  --accent-hover: #fb923c;
+  --twitch: #9146ff;
+  --youtube: #ff0000;
+  --kick: #53fc18;
+  --facebook: #1877f2;
+  --tiktok: #ff0050;
+  --discord: #5865f2;
+  --bilibili: #00a1d6;
+  --x: #000000;
+  --trovo: #19d4ae;
 }
 
 @theme inline {
@@ -15,6 +24,7 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-surface: var(--surface);
+  --color-accent: var(--accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -26,7 +36,52 @@ body {
     "Segoe UI", sans-serif;
 }
 
-.backdrop-glow {
-  filter: blur(72px);
-  opacity: 0.35;
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Animations */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes slide-in-from-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-in {
+  animation: slide-in-from-right 0.3s ease-out;
+}
+
+/* Glass effect */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Orange gradient backgrounds */
+.bg-orange-glow {
+  background: radial-gradient(ellipse at center, rgba(249, 115, 22, 0.15) 0%, transparent 70%);
 }

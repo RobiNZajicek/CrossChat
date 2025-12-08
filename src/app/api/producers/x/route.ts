@@ -1,7 +1,6 @@
-import { createProducerHandler } from "@/app/api/producers/producer-handler";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
+import { createProducerHandler } from "../producer-handler";
 export const POST = createProducerHandler("X");
+export const runtime = "nodejs";
+
+
 

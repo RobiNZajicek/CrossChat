@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import { 
   BadgeCheck, 
@@ -15,21 +15,21 @@ import {
   History,
   Play,
   Square,
-  Clock,
-  Radio,
   Facebook,
   Music2,
-  Gamepad2,
-  Twitter,
-  Tv
+  Radio,
+  Tv,
+  Twitter
 } from "lucide-react";
-import { Toast } from "./toast-notification";
 import type {
   ChatMessage,
   ProducerPayload,
   ProducerPlatform,
 } from "@/types/chat";
 
+// =============================================================================
+// PLATFORM CONFIG - Konfigurace pro vsech 9 platforem
+// =============================================================================
 const PLATFORM_CONFIG: Record<
   ProducerPlatform,
   {
@@ -100,8 +100,8 @@ const PLATFORM_CONFIG: Record<
     tag: "bg-indigo-500/20 text-indigo-200 border border-indigo-500/30",
     statusPill: "bg-indigo-500/15 text-indigo-200",
     gradient: "from-indigo-600/50 via-indigo-500/20 to-transparent",
-    description: "Discord server messages.",
-    icon: Gamepad2,
+    description: "Discord server chat integration.",
+    icon: MessageCircle,
   },
   Bilibili: {
     slug: "bilibili",
@@ -110,12 +110,12 @@ const PLATFORM_CONFIG: Record<
     tag: "bg-cyan-500/20 text-cyan-200 border border-cyan-500/30",
     statusPill: "bg-cyan-500/15 text-cyan-200",
     gradient: "from-cyan-600/50 via-cyan-500/20 to-transparent",
-    description: "Bilibili live danmaku chat.",
+    description: "Bilibili live streaming chat.",
     icon: Tv,
   },
   X: {
     slug: "x",
-    accent: "text-gray-400",
+    accent: "text-gray-300",
     accentRing: "ring-gray-500/40",
     tag: "bg-gray-500/20 text-gray-200 border border-gray-500/30",
     statusPill: "bg-gray-500/15 text-gray-200",
@@ -130,7 +130,7 @@ const PLATFORM_CONFIG: Record<
     tag: "bg-teal-500/20 text-teal-200 border border-teal-500/30",
     statusPill: "bg-teal-500/15 text-teal-200",
     gradient: "from-teal-600/50 via-teal-500/20 to-transparent",
-    description: "Trovo live stream chat.",
+    description: "Trovo live streaming chat.",
     icon: Radio,
   },
 };
@@ -164,7 +164,6 @@ const sortMessages = (messages: ChatMessage[]) =>
 
 interface Props {
   streamerId: string;
-  defaultView?: "live" | "history";
   onStreamEnd?: () => void;
 }
 
@@ -176,14 +175,21 @@ type Session = {
   messagesFile: string;
 };
 
-export function StreamDashboard({ streamerId, defaultView = "live", onStreamEnd }: Props) {
+// =============================================================================
+// STREAM DASHBOARD - Hlavni komponenta pro streaming
+// =============================================================================
+export function StreamDashboard({ streamerId, onStreamEnd }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [socketId, setSocketId] = useState<string | null>(null);
-  const [lastError, setLastError] = useState<string | null>(null);
   const [activePlatform, setActivePlatform] = useState<ProducerPlatform>("Twitch");
-  const [view, setView] = useState<"live" | "history">(defaultView);
+  const [view, setView] = useState<"live" | "history">("live");
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [streamStartTime, setStreamStartTime] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState("00:00:00");
+  const [showEndToast, setShowEndToast] = useState(false);
+  const [endDuration, setEndDuration] = useState("");
+  
+  // Forms pro vsech 9 platforem
   const [forms, setForms] = useState<Record<ProducerPlatform, FormState>>({
     Twitch: { ...INITIAL_FORM },
     YouTube: { ...INITIAL_FORM },
@@ -195,15 +201,29 @@ export function StreamDashboard({ streamerId, defaultView = "live", onStreamEnd 
     X: { ...INITIAL_FORM },
     Trovo: { ...INITIAL_FORM },
   });
-  const [streamStartTime, setStreamStartTime] = useState<number | null>(null);
-  const [liveTime, setLiveTime] = useState<string>("00:00:00");
-  const [showToast, setShowToast] = useState(false);
-  const [toastDuration, setToastDuration] = useState<string>("");
   
   const feedRef = useRef<HTMLDivElement>(null);
   const messageIds = useRef<Set<string>>(new Set());
   const socketRef = useRef<Socket | null>(null);
 
+  // Stream timer
+  useEffect(() => {
+    if (!streamStartTime) return;
+    
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - streamStartTime;
+      const hours = Math.floor(elapsed / 3600000);
+      const mins = Math.floor((elapsed % 3600000) / 60000);
+      const secs = Math.floor((elapsed % 60000) / 1000);
+      setElapsedTime(
+        `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      );
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [streamStartTime]);
+
+  // Socket connection
   useEffect(() => {
     if (view !== "live") return;
 
@@ -212,7 +232,6 @@ export function StreamDashboard({ streamerId, defaultView = "live", onStreamEnd 
         await fetch("/api/socket");
       } catch (e) {
         console.error("Failed to wake up socket server", e);
-        setLastError("API Init Failed");
       }
     };
 
@@ -229,8 +248,6 @@ export function StreamDashboard({ streamerId, defaultView = "live", onStreamEnd 
 
       socket.on("connect", () => {
         setIsConnected(true);
-        setSocketId(socket.id || null);
-        setLastError(null);
         socket.emit("join", streamerId);
       });
 
@@ -240,7 +257,6 @@ export function StreamDashboard({ streamerId, defaultView = "live", onStreamEnd 
 
       socket.on("disconnect", () => {
         setIsConnected(false);
-        setSocketId(null);
       });
 
       socket.on("chat:message", (message: ChatMessage) => {
@@ -249,29 +265,29 @@ export function StreamDashboard({ streamerId, defaultView = "live", onStreamEnd 
 
       socket.on("chat:message:global", (message: ChatMessage) => {
         if (message.streamerId === streamerId) {
-            handleIncomingMessage(message);
+          handleIncomingMessage(message);
         }
       });
     });
 
     const handleIncomingMessage = (message: ChatMessage) => {
-        if (message.streamerId && message.streamerId !== streamerId) return;
+      if (message.streamerId && message.streamerId !== streamerId) return;
 
-        setMessages((prev) => {
-          if (messageIds.current.has(message.id)) {
-            return prev;
-          }
-          messageIds.current.add(message.id);
-          return sortMessages([...prev, message]);
-        });
+      setMessages((prev) => {
+        if (messageIds.current.has(message.id)) return prev;
+        messageIds.current.add(message.id);
+        return sortMessages([...prev, message]);
+      });
     };
 
-    // Polling fallback every 2 seconds - ALWAYS run to ensure sync
+    // Polling fallback
     const pollInterval = setInterval(() => {
+      if (!socketRef.current?.connected) {
         fetchMessages();
+      }
     }, 2000);
 
-    fetchMessages(); // Initial load
+    fetchMessages();
 
     return () => {
       socketRef.current?.disconnect();
@@ -283,40 +299,34 @@ export function StreamDashboard({ streamerId, defaultView = "live", onStreamEnd 
     let url = "/api/messages";
     if (archive) url += `?archive=${archive}`;
 
-    console.log(`[Dashboard] Fetching messages from:`, archive ? `archive ${archive}` : 'active chat');
-
     fetch(url, { cache: "no-store" })
       .then(res => res.json())
       .then((data: { messages?: ChatMessage[] }) => {
-        console.log(`[Dashboard] Received ${data.messages?.length || 0} messages`);
         if (data.messages?.length) {
           if (archive) {
-             setMessages(sortMessages(data.messages));
+            setMessages(sortMessages(data.messages));
           } else {
-             messageIds.current = new Set(data.messages.map((msg) => msg.id));
-             setMessages(sortMessages(data.messages));
+            messageIds.current = new Set(data.messages.map((msg) => msg.id));
+            setMessages(sortMessages(data.messages));
           }
         } else if (archive) {
-            console.log(`[Dashboard] Archive is empty or not found`);
-            setMessages([]);
+          setMessages([]);
         }
       })
-      .catch((err) => {
-        console.error("Failed to load history:", err);
-      });
+      .catch((err) => console.error("Failed to load history:", err));
   };
 
   const loadSessions = () => {
-      fetch("/api/stream/sessions")
-        .then(res => res.json())
-        .then(data => setSessions(data.sessions));
+    fetch("/api/stream/sessions")
+      .then(res => res.json())
+      .then(data => setSessions(data.sessions));
   };
 
   useEffect(() => {
-      if (view === "history") {
-          loadSessions();
-          socketRef.current?.disconnect();
-      }
+    if (view === "history") {
+      loadSessions();
+      socketRef.current?.disconnect();
+    }
   }, [view]);
 
   useEffect(() => {
@@ -325,47 +335,30 @@ export function StreamDashboard({ streamerId, defaultView = "live", onStreamEnd 
     }
   }, [messages]);
 
-  // Live timer effect
-  useEffect(() => {
-    if (view === "live" && streamStartTime) {
-      const interval = setInterval(() => {
+  const handleControl = async (action: "start" | "end") => {
+    if (action === "start") {
+      setStreamStartTime(Date.now());
+      setMessages([]);
+      messageIds.current = new Set();
+    } else {
+      // End stream
+      if (streamStartTime) {
         const elapsed = Date.now() - streamStartTime;
         const hours = Math.floor(elapsed / 3600000);
-        const minutes = Math.floor((elapsed % 3600000) / 60000);
-        const seconds = Math.floor((elapsed % 60000) / 1000);
-        setLiveTime(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
-      }, 1000);
-      return () => clearInterval(interval);
+        const mins = Math.floor((elapsed % 3600000) / 60000);
+        const secs = Math.floor((elapsed % 60000) / 1000);
+        setEndDuration(`${hours}h ${mins}m ${secs}s`);
+        setShowEndToast(true);
+        setTimeout(() => setShowEndToast(false), 5000);
+      }
+      setStreamStartTime(null);
+      onStreamEnd?.();
     }
-  }, [view, streamStartTime]);
-
-  const handleControl = async (action: "start" | "end") => {
-      await fetch("/api/stream/control", {
-          method: "POST",
-          body: JSON.stringify({ action })
-      });
-      if (action === "start") {
-          setMessages([]);
-          messageIds.current = new Set();
-          setStreamStartTime(Date.now());
-          fetchMessages(); // Refresh immediately after starting
-      }
-      if (action === "end") {
-          // Calculate stream duration
-          if (streamStartTime) {
-            const duration = Date.now() - streamStartTime;
-            const hours = Math.floor(duration / 3600000);
-            const minutes = Math.floor((duration % 3600000) / 60000);
-            const durationText = hours > 0 
-              ? `${hours}h ${minutes}m` 
-              : `${minutes} minutes`;
-            setToastDuration(durationText);
-            setShowToast(true);
-          }
-          setStreamStartTime(null);
-          setMessages([]);
-          onStreamEnd?.();
-      }
+    
+    await fetch("/api/stream/control", {
+      method: "POST",
+      body: JSON.stringify({ action })
+    });
   };
 
   const handleInputChange = (
@@ -421,11 +414,8 @@ export function StreamDashboard({ streamerId, defaultView = "live", onStreamEnd 
       }));
       setTimeout(() => setForms(p => ({...p, [platform]: {...p[platform], status: undefined}})), 2000);
       
-      // OPTIMISTIC UPDATE (Simulated)
-      // Since we don't know the exact UUID the server will generate, we rely on the rapid polling or socket to confirm it.
-      // But we can trigger a fetch immediately.
-      setTimeout(() => fetchMessages(), 100); 
-
+      // Fetch immediately for live update
+      setTimeout(() => fetchMessages(), 100);
     } catch (error) {
       setForms((prev) => ({
         ...prev,
@@ -438,19 +428,25 @@ export function StreamDashboard({ streamerId, defaultView = "live", onStreamEnd 
     }
   };
 
-  const activeForm = forms[activePlatform]; // Defined correctly here
+  const activeForm = forms[activePlatform];
 
   return (
-    <>
-      {showToast && (
-        <Toast
-          message="Your stream has been archived successfully"
-          duration={toastDuration}
-          onClose={() => setShowToast(false)}
-        />
+    <div className="relative">
+      {/* End Stream Toast */}
+      {showEndToast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right">
+          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-4">
+            <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
+            <div>
+              <div className="font-bold">Stream Ended</div>
+              <div className="text-sm opacity-90">Duration: {endDuration}</div>
+            </div>
+          </div>
+        </div>
       )}
-      
+
       <div className="grid h-[calc(100vh-12rem)] gap-8 lg:grid-cols-[1fr_400px]">
+        {/* Chat Feed */}
         <section className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0e0e10] shadow-2xl">
           <div className="flex items-center justify-between border-b border-white/5 bg-[#18181b] px-4 py-3">
             <div className="flex items-center gap-4">
@@ -460,118 +456,121 @@ export function StreamDashboard({ streamerId, defaultView = "live", onStreamEnd 
               
               {view === "live" && streamStartTime && (
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium border bg-red-500/10 text-red-400 border-red-500/20 animate-pulse">
-                    <Radio size={10} />
+                  <div className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold bg-red-500 text-white animate-pulse">
+                    <span className="w-2 h-2 bg-white rounded-full" />
                     LIVE
                   </div>
-                  <div className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium border bg-orange-500/10 text-orange-400 border-orange-500/20">
-                    <Clock size={10} />
-                    {liveTime}
-                  </div>
+                  <span className="text-sm font-mono text-white/70">{elapsedTime}</span>
                 </div>
               )}
               
               {view === "live" && !streamStartTime && (
-                  <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium border ${
+                <div className={`flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium border ${
                   isConnected 
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                      : "bg-red-500/10 text-red-400 border-red-500/20"
-                  }`}>
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                    : "bg-red-500/10 text-red-400 border-red-500/20"
+                }`}>
                   {isConnected ? <Wifi size={10} /> : <WifiOff size={10} />}
                   {isConnected ? "CONNECTED" : "OFFLINE"}
-                  </div>
+                </div>
               )}
             </div>
-          
-          <div className="flex items-center gap-2">
-             <button 
+            
+            <div className="flex items-center gap-2">
+              <button 
                 onClick={() => setView("live")}
                 className={`p-2 rounded-lg transition ${view === "live" ? "bg-white/10 text-white" : "text-white/40 hover:bg-white/5"}`}
                 title="Live View"
-             >
-                 <Activity size={16} />
-             </button>
-             <button 
+              >
+                <Activity size={16} />
+              </button>
+              <button 
                 onClick={() => setView("history")}
                 className={`p-2 rounded-lg transition ${view === "history" ? "bg-white/10 text-white" : "text-white/40 hover:bg-white/5"}`}
                 title="History"
-             >
-                 <History size={16} />
-             </button>
+              >
+                <History size={16} />
+              </button>
+            </div>
           </div>
-        </div>
-        
-        {view === "live" ? (
+          
+          {view === "live" ? (
             <div ref={feedRef} className="flex-1 space-y-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-white/10">
-            {messages.length === 0 ? (
+              {messages.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-2 text-white/30">
-                <MessageCircle size={32} className="opacity-50" />
-                <p className="text-sm">Waiting for chat...</p>
+                  <MessageCircle size={32} className="opacity-50" />
+                  <p className="text-sm">Waiting for chat...</p>
                 </div>
-            ) : (
+              ) : (
                 messages.map((message) => (
-                <ChatMessageItem key={message.id} message={message} />
+                  <ChatMessageItem key={message.id} message={message} />
                 ))
-            )}
+              )}
             </div>
-        ) : (
+          ) : (
             <div className="flex flex-1 overflow-hidden">
-                <div className="w-1/3 border-r border-white/5 overflow-y-auto p-2 space-y-1">
-                    {sessions.length === 0 && <p className="text-center text-xs text-white/30 mt-4">No archives found.</p>}
-                    {sessions.map(s => (
-                        <button 
-                            key={s.id}
-                            onClick={() => fetchMessages(s.messagesFile)}
-                            className="w-full text-left p-3 rounded-lg hover:bg-white/5 text-xs transition"
-                        >
-                            <div className="font-bold text-white/80">Stream {new Date(s.startedAt).toLocaleDateString()}</div>
-                            <div className="text-white/40">{new Date(s.startedAt).toLocaleTimeString()} • {s.messageCount} msgs</div>
-                        </button>
-                    ))}
-                </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-black/20">
-                    {messages.map((message) => (
-                        <ChatMessageItem key={message.id} message={message} />
-                    ))}
-                </div>
+              <div className="w-1/3 border-r border-white/5 overflow-y-auto p-2 space-y-1">
+                {sessions.length === 0 && <p className="text-center text-xs text-white/30 mt-4">No archives found.</p>}
+                {sessions.map(s => (
+                  <button 
+                    key={s.id}
+                    onClick={() => fetchMessages(s.messagesFile)}
+                    className="w-full text-left p-3 rounded-lg hover:bg-white/5 text-xs transition"
+                  >
+                    <div className="font-bold text-white/80">Stream {new Date(s.startedAt).toLocaleDateString()}</div>
+                    <div className="text-white/40">{new Date(s.startedAt).toLocaleTimeString()} • {s.messageCount} msgs</div>
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-1 bg-black/20">
+                {messages.map((message) => (
+                  <ChatMessageItem key={message.id} message={message} />
+                ))}
+              </div>
             </div>
-        )}
-      </section>
-
-      <div className="flex flex-col gap-4">
-        <section className="rounded-xl border border-white/10 bg-[#18181b] p-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-3">Stream Controls</h3>
-            <div className="grid grid-cols-2 gap-3">
-                <button 
-                    onClick={() => handleControl("start")}
-                    className="flex items-center justify-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 py-2 text-xs font-bold text-emerald-400 hover:bg-emerald-500/20 transition"
-                >
-                    <Play size={12} fill="currentColor" /> Start New Stream
-                </button>
-                <button 
-                    onClick={() => handleControl("end")}
-                    className="flex items-center justify-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 transition"
-                >
-                    <Square size={12} fill="currentColor" /> End & Archive
-                </button>
-            </div>
+          )}
         </section>
 
-        <SimulatorPanel 
+        {/* Right Panel */}
+        <div className="flex flex-col gap-4">
+          {/* Stream Controls */}
+          <section className="rounded-xl border border-white/10 bg-[#18181b] p-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-3">Stream Controls</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => handleControl("start")}
+                className="flex items-center justify-center gap-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 py-2 text-xs font-bold text-emerald-400 hover:bg-emerald-500/20 transition"
+              >
+                <Play size={12} fill="currentColor" /> Start Stream
+              </button>
+              <button 
+                onClick={() => handleControl("end")}
+                className="flex items-center justify-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 transition"
+              >
+                <Square size={12} fill="currentColor" /> End & Archive
+              </button>
+            </div>
+          </section>
+
+          {/* Simulator Panel */}
+          <SimulatorPanel 
             activePlatform={activePlatform}
             setActivePlatform={setActivePlatform}
             activeForm={activeForm}
             handleInputChange={handleInputChange}
             handleSubmit={handleSubmit}
-        />
+          />
+        </div>
       </div>
-      </div>
-    </>
+    </div>
   );
 }
 
+// =============================================================================
+// CHAT MESSAGE ITEM - Jednotliva zprava v chatu
+// =============================================================================
 function ChatMessageItem({ message }: { message: ChatMessage }) {
-  const Config = PLATFORM_CONFIG[message.platform];
+  const Config = PLATFORM_CONFIG[message.platform] || PLATFORM_CONFIG.Twitch;
   const Icon = Config.icon;
 
   return (
@@ -620,26 +619,40 @@ function ChatMessageItem({ message }: { message: ChatMessage }) {
   );
 }
 
+// =============================================================================
+// SIMULATOR PANEL - Panel pro posilani testovacich zprav
+// =============================================================================
 function SimulatorPanel({ 
   activePlatform, 
   setActivePlatform, 
   activeForm, 
   handleInputChange, 
   handleSubmit 
-}: any) {
+}: {
+  activePlatform: ProducerPlatform;
+  setActivePlatform: (p: ProducerPlatform) => void;
+  activeForm: FormState;
+  handleInputChange: (platform: ProducerPlatform, field: keyof FormState, value: string | boolean) => void;
+  handleSubmit: (platform: ProducerPlatform) => void;
+}) {
+  // Hlavni 3 platformy (prvni radek)
+  const mainPlatforms: ProducerPlatform[] = ["Twitch", "YouTube", "Kick"];
+  // Ostatni platformy (druhy radek)
+  const otherPlatforms: ProducerPlatform[] = ["Facebook", "TikTok", "Discord", "Bilibili", "X", "Trovo"];
+  
   return (
     <section className="flex flex-col rounded-xl border border-white/10 bg-[#18181b]">
-      <div className="border-b border-white/5 p-2">
+      <div className="border-b border-white/5 p-2 space-y-1">
+        {/* Main platforms */}
         <div className="flex gap-1">
-          {Object.keys(PLATFORM_CONFIG).map((p) => {
-            const platform = p as ProducerPlatform;
+          {mainPlatforms.map((platform) => {
             const Icon = PLATFORM_CONFIG[platform].icon;
             const isActive = activePlatform === platform;
             return (
               <button
                 key={platform}
                 onClick={() => setActivePlatform(platform)}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-bold uppercase tracking-wide transition-all ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold uppercase tracking-wide transition-all ${
                   isActive
                     ? "bg-white/10 text-white shadow-inner"
                     : "text-white/40 hover:bg-white/5 hover:text-white/80"
@@ -651,10 +664,31 @@ function SimulatorPanel({
             );
           })}
         </div>
+        {/* Other platforms */}
+        <div className="flex gap-1">
+          {otherPlatforms.map((platform) => {
+            const Icon = PLATFORM_CONFIG[platform].icon;
+            const isActive = activePlatform === platform;
+            return (
+              <button
+                key={platform}
+                onClick={() => setActivePlatform(platform)}
+                className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all ${
+                  isActive
+                    ? "bg-white/10 text-white shadow-inner"
+                    : "text-white/40 hover:bg-white/5 hover:text-white/80"
+                }`}
+                title={platform}
+              >
+                <Icon size={12} className={isActive ? PLATFORM_CONFIG[platform].accent : ""} />
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="relative flex-1 p-5">
-        <div className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${PLATFORM_CONFIG[activePlatform as ProducerPlatform].gradient} opacity-20`} />
+        <div className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${PLATFORM_CONFIG[activePlatform].gradient} opacity-20`} />
         
         <div className="relative flex h-full flex-col gap-5">
           <div className="space-y-4">
@@ -686,14 +720,14 @@ function SimulatorPanel({
                   ].map(({ key, icon: Icon, label, color }) => (
                     <button
                       key={key}
-                      onClick={() => handleInputChange(activePlatform, key, !activeForm[key])}
+                      onClick={() => handleInputChange(activePlatform, key as keyof FormState, !activeForm[key as keyof FormState])}
                       className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-[10px] font-bold transition-all ${
-                        activeForm[key]
+                        activeForm[key as keyof FormState]
                           ? color
                           : "border-white/5 bg-white/5 text-white/30 hover:bg-white/10"
                       }`}
                     >
-                      <Icon size={10} className={activeForm[key] ? "fill-current" : ""} />
+                      <Icon size={10} className={activeForm[key as keyof FormState] ? "fill-current" : ""} />
                       {label}
                     </button>
                   ))}
@@ -704,7 +738,7 @@ function SimulatorPanel({
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-wider text-white/40">Message Content</label>
               <textarea
-                className="h-32 w-full resize-none rounded-lg border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white focus:border-white/30 focus:outline-none focus:ring-1 focus:ring-white/30"
+                className="h-24 w-full resize-none rounded-lg border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white focus:border-white/30 focus:outline-none focus:ring-1 focus:ring-white/30"
                 placeholder={`Type something in ${activePlatform} chat...`}
                 value={activeForm.text}
                 onChange={(e) => handleInputChange(activePlatform, "text", e.target.value)}

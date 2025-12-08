@@ -1,517 +1,507 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import { 
   Play, 
   History, 
-  TrendingUp, 
-  MessageSquare, 
   Users, 
-  Eye,
+  MessageSquare, 
+  Eye, 
+  TrendingUp,
   Twitch,
   Youtube,
+  Facebook,
+  Music2,
   MessageCircle,
-  Clock,
+  Tv,
+  Radio,
   LogOut,
+  BarChart3,
+  Calendar,
+  Sparkles,
+  Send,
   Search,
   Bell,
   ChevronDown,
-  Sparkles,
-  BarChart3,
   Zap,
-  AlertCircle,
-  Send,
-  Radio,
-  Facebook,
-  Music2,
-  Gamepad2,
-  Twitter,
-  Tv
-} from 'lucide-react';
+  Clock,
+  ArrowUpRight,
+  Activity
+} from "lucide-react";
+import type { ProducerPlatform } from "@/types/chat";
+
+// =============================================================================
+// PLATFORM CONFIG
+// =============================================================================
+const PLATFORM_ICONS: Record<ProducerPlatform, { icon: React.ElementType; color: string; bg: string; gradient: string }> = {
+  Twitch: { icon: Twitch, color: "text-purple-400", bg: "bg-purple-500/10", gradient: "from-purple-500 to-purple-600" },
+  YouTube: { icon: Youtube, color: "text-red-400", bg: "bg-red-500/10", gradient: "from-red-500 to-red-600" },
+  Kick: { icon: MessageCircle, color: "text-emerald-400", bg: "bg-emerald-500/10", gradient: "from-emerald-500 to-emerald-600" },
+  Facebook: { icon: Facebook, color: "text-blue-400", bg: "bg-blue-500/10", gradient: "from-blue-500 to-blue-600" },
+  TikTok: { icon: Music2, color: "text-pink-400", bg: "bg-pink-500/10", gradient: "from-pink-500 to-pink-600" },
+  Discord: { icon: MessageCircle, color: "text-indigo-400", bg: "bg-indigo-500/10", gradient: "from-indigo-500 to-indigo-600" },
+  Bilibili: { icon: Tv, color: "text-cyan-400", bg: "bg-cyan-500/10", gradient: "from-cyan-500 to-cyan-600" },
+  X: { icon: MessageSquare, color: "text-gray-300", bg: "bg-gray-500/10", gradient: "from-gray-500 to-gray-600" },
+  Trovo: { icon: Radio, color: "text-teal-400", bg: "bg-teal-500/10", gradient: "from-teal-500 to-teal-600" },
+};
+
+type UserStats = {
+  totalMessages: number;
+  totalStreams: number;
+  lastViewCount: number;
+};
 
 type Session = {
   id: string;
   startedAt: number;
   endedAt?: number;
   messageCount: number;
-  messagesFile: string;
 };
 
-type UserStats = {
-  totalMessages: number;
-  totalStreams: number;
-  lastViewCount?: number;
-  subscriberCounts?: {
-    twitch: number;
-    youtube: number;
-    kick: number;
-    facebook: number;
-    tiktok: number;
-    discord: number;
-    bilibili: number;
-    x: number;
-    trovo: number;
+interface Props {
+  user: {
+    id: string;
+    username: string;
+    stats?: UserStats;
+    subscriberCounts?: Record<string, number>;
   };
-};
-
-type Props = {
-  username: string;
-  userId: string;
-  stats?: UserStats;
   onStartStream: () => void;
   onViewHistory: () => void;
-  isStreaming: boolean;
-};
+  onLogout: () => void;
+}
 
-export function DashboardOverview({ username, userId, stats, onStartStream, onViewHistory, isStreaming }: Props) {
+// =============================================================================
+// DASHBOARD OVERVIEW
+// =============================================================================
+export function DashboardOverview({ user, onStartStream, onViewHistory, onLogout }: Props) {
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [activeTab, setActiveTab] = useState('Dashboard');
-  const [aiInput, setAiInput] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [aiQuery, setAiQuery] = useState("");
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    fetch('/api/stream/sessions')
+    fetch("/api/stream/sessions")
       .then(res => res.json())
-      .then(data => setSessions(data.sessions?.slice(0, 5) || []));
+      .then(data => {
+        setSessions(data.sessions || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  const tabs = ['Dashboard', 'Analytics', 'History', 'Settings'];
-  
-  // Generate fake heatmap data for activity
-  const generateHeatmap = () => {
-    const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    const hours = ['00-06 AM', '06-12 PM', '12-06 PM', '06-12 AM'];
-    return { days, hours };
-  };
-  
-  const heatmap = generateHeatmap();
+  const stats = user.stats || { totalMessages: 0, totalStreams: 0, lastViewCount: 0 };
+  const subCounts = user.subscriberCounts || {};
+  const recentSessions = sessions.slice(0, 4);
+  const totalSubs = Object.values(subCounts).reduce((a, b) => a + b, 0);
 
-  // Platform distribution for pie chart simulation
-  const platforms = [
-    { name: 'Twitch', percent: 25, color: '#a855f7', icon: Twitch },
-    { name: 'YouTube', percent: 20, color: '#ef4444', icon: Youtube },
-    { name: 'Kick', percent: 12, color: '#10b981', icon: MessageCircle },
-    { name: 'Facebook', percent: 10, color: '#3b82f6', icon: Facebook },
-    { name: 'TikTok', percent: 15, color: '#ec4899', icon: Music2 },
-    { name: 'Discord', percent: 8, color: '#6366f1', icon: Gamepad2 },
-    { name: 'Bilibili', percent: 5, color: '#06b6d4', icon: Tv },
-    { name: 'X', percent: 3, color: '#6b7280', icon: Twitter },
-    { name: 'Trovo', percent: 2, color: '#14b8a6', icon: Radio },
-  ];
+  // Generate fake chart data
+  const chartData = Array.from({ length: 12 }, (_, i) => ({
+    month: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
+    value: Math.floor(Math.random() * 80) + 20,
+  }));
 
-  const totalSubs = (stats?.subscriberCounts?.twitch || 0) + 
-                   (stats?.subscriberCounts?.youtube || 0) + 
-                   (stats?.subscriberCounts?.kick || 0);
+  // Generate heatmap data (7 days x 24 hours)
+  const heatmapData = Array.from({ length: 7 }, () => 
+    Array.from({ length: 24 }, () => Math.random())
+  );
 
   return (
-    <div className="min-h-screen bg-[#121212]">
+    <div className="min-h-screen bg-[#0a0a0a]">
       {/* Top Navigation */}
-      <nav className="flex items-center justify-between border-b border-white/5 bg-[#1a1a1a] px-6 py-3">
-        <div className="flex items-center gap-8">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500">
-              <MessageSquare size={16} className="text-white" />
+      <nav className="sticky top-0 z-50 border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl">
+        <div className="mx-auto max-w-[1600px] px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                <Zap size={16} className="text-white" />
+              </div>
+              <span className="text-lg font-bold text-white">Cross<span className="text-orange-400">Chat</span></span>
+            </div>
+            <div className="hidden md:flex items-center gap-1">
+              <NavTab active>Dashboard</NavTab>
+              <NavTab>Analytics</NavTab>
+              <NavTab>Settings</NavTab>
             </div>
           </div>
           
-          {/* Tabs */}
-          <div className="flex items-center gap-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                  activeTab === tab
-                    ? 'bg-orange-500 text-white'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <button className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition">
-            <Search size={18} />
-          </button>
-          <button className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-white/60 hover:bg-white/10 hover:text-white transition relative">
-            <Bell size={18} />
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-orange-500" />
-          </button>
-          <div className="h-6 w-px bg-white/10" />
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
-              {username.charAt(0).toUpperCase()}
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+              <Search size={14} className="text-white/40" />
+              <input 
+                placeholder="Search..." 
+                className="bg-transparent text-sm text-white placeholder:text-white/40 w-32 focus:outline-none"
+              />
             </div>
-            <div className="hidden md:block">
-              <div className="text-sm font-medium text-white">{username}</div>
-              <div className="text-xs text-white/40">{username}@crosschat.io</div>
-            </div>
-          </div>
-          <form action="/api/auth/logout" method="POST">
-            <button type="submit" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-white/60 hover:bg-red-500/20 hover:text-red-400 transition">
-              <LogOut size={16} />
+            <button className="relative p-2 rounded-lg hover:bg-white/5 transition">
+              <Bell size={18} className="text-white/60" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full" />
             </button>
-          </form>
+            <div className="flex items-center gap-2 pl-4 border-l border-white/10">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white font-bold text-sm">
+                {user.username[0].toUpperCase()}
+              </div>
+              <span className="hidden md:block text-sm font-medium text-white">{user.username}</span>
+              <ChevronDown size={14} className="text-white/40" />
+            </div>
+          </div>
         </div>
       </nav>
 
-      {/* Main Content */}
-      <div className="p-6">
-        {/* Page Header */}
-        <div className="flex items-center justify-between mb-6">
+      <div className="mx-auto max-w-[1600px] p-6">
+        {/* Header */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-1">Stream Dashboard</h1>
-            <p className="text-white/40 text-sm">Last updated: {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            <h1 className="text-2xl font-bold text-white">Stream Dashboard</h1>
+            <p className="text-white/40 text-sm mt-1">
+              Last updated: {currentTime.toLocaleTimeString()}
+            </p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/70 hover:bg-white/10 transition">
-              <Clock size={14} />
-              Last 30 days
-              <ChevronDown size={14} />
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition text-sm"
+            >
+              <LogOut size={16} />
+              <span className="hidden md:inline">Logout</span>
             </button>
             <button
               onClick={onStartStream}
-              disabled={isStreaming}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-semibold text-sm shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 hover:scale-105 transition"
             >
-              <Radio size={14} />
-              {isStreaming ? 'Live Now' : 'Go Live'}
+              <Play size={16} fill="white" />
+              Go Live
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* Main Grid */}
-        <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-          {/* Left Column */}
-          <div className="space-y-6">
+        <div className="grid grid-cols-12 gap-6">
+          {/* Left Column - Main Content */}
+          <div className="col-span-12 lg:col-span-8 space-y-6">
+            
             {/* Analytics Chart */}
-            <div className="rounded-2xl border border-white/5 bg-[#1a1a1a] p-6">
+            <section className="rounded-2xl bg-[#111] border border-white/5 p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <div className="text-xs text-orange-400 font-medium mb-1">Analytics</div>
-                  <h2 className="text-lg font-bold text-white">Tracking your streams</h2>
+                  <h2 className="text-lg font-semibold text-white">Viewer Analytics</h2>
+                  <p className="text-white/40 text-sm">Monthly overview</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {['Twitch', 'YouTube', 'All'].map((filter, idx) => (
-                    <button
-                      key={filter}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                        idx === 2
-                          ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                          : 'bg-white/5 text-white/50 hover:bg-white/10'
-                      }`}
-                    >
-                      {filter}
-                    </button>
-                  ))}
+                  <span className="px-3 py-1 rounded-lg bg-orange-500/10 text-orange-400 text-xs font-medium">
+                    +24% vs last month
+                  </span>
                 </div>
               </div>
               
-              {/* Chart Area */}
-              <div className="relative">
-                <div className="flex items-end justify-between gap-4 h-48 px-4">
-                  <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-xs text-white/30 pr-4">
-                    <span>$60k</span>
-                    <span>$40k</span>
-                    <span>$20k</span>
-                    <span>$0</span>
+              {/* Fake Chart */}
+              <div className="h-48 flex items-end gap-2">
+                {chartData.map((data, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                    <div 
+                      className="w-full rounded-t-lg bg-gradient-to-t from-orange-500/20 to-orange-500/60 transition-all hover:from-orange-500/30 hover:to-orange-500/80"
+                      style={{ height: `${data.value}%` }}
+                    />
+                    <span className="text-[10px] text-white/30">{data.month}</span>
                   </div>
-                  <div className="flex items-end gap-3 flex-1 ml-10">
-                    {[65, 45, 80, 55, 90, 70, 85, 60, 75, 95, 50, 88].map((height, idx) => (
-                      <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-                        <div 
-                          className={`w-full rounded-t-md transition-all ${
-                            idx === 9 ? 'bg-gradient-to-t from-orange-600 to-orange-400' : 'bg-orange-500/30'
-                          }`}
-                          style={{ height: `${height}%` }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex justify-between mt-4 ml-10 text-xs text-white/30">
-                  {['5', '10', '15', '20', '25', '30'].map((day) => (
-                    <span key={day}>{day}</span>
-                  ))}
-                </div>
-                
-                {/* Floating stat */}
-                <div className="absolute top-4 left-16 rounded-xl bg-[#252525] border border-white/10 p-3 shadow-xl">
-                  <div className="text-xs text-white/50 mb-1">Total Messages</div>
-                  <div className="text-xl font-bold text-white">{(stats?.totalMessages || 0).toLocaleString()}</div>
-                  <div className="flex items-center gap-1 text-xs text-emerald-400 mt-1">
-                    <TrendingUp size={12} />
-                    +24% this month
-                  </div>
-                </div>
+                ))}
               </div>
-            </div>
+            </section>
 
-            {/* Bottom Row */}
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* AI Assistant Box */}
-              <div className="rounded-2xl border border-white/5 bg-[#1a1a1a] p-6">
-                <div className="mb-4">
-                  <div className="text-xs text-white/40 mb-1">Hi {username}</div>
-                  <h3 className="text-lg font-bold text-white">Can I help you?</h3>
+            {/* AI Assistant */}
+            <section className="rounded-2xl bg-gradient-to-br from-[#1a1a2e] to-[#16162a] border border-purple-500/20 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                  <Sparkles size={20} className="text-purple-400" />
                 </div>
-                
-                <div className="space-y-2 mb-4">
-                  {[
-                    { icon: BarChart3, label: 'Stream analytics', color: 'bg-blue-500/20 text-blue-400' },
-                    { icon: Zap, label: 'Top performers', color: 'bg-orange-500/20 text-orange-400' },
-                    { icon: AlertCircle, label: 'Low engagement alerts', color: 'bg-white/5 text-white/50' },
-                  ].map((item) => (
-                    <button
-                      key={item.label}
-                      className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition hover:opacity-80 ${item.color}`}
-                    >
-                      <item.icon size={14} />
-                      {item.label}
-                    </button>
-                  ))}
+                <div>
+                  <h2 className="text-lg font-semibold text-white">AI Assistant</h2>
+                  <p className="text-white/40 text-xs">Powered by GPT-4</p>
                 </div>
-                
-                <div className="flex items-center gap-2 rounded-xl bg-[#252525] border border-white/10 p-2">
-                  <input
-                    type="text"
-                    value={aiInput}
-                    onChange={(e) => setAiInput(e.target.value)}
-                    placeholder="Ask something to AI"
-                    className="flex-1 bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none px-2"
-                  />
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition">
-                    <Send size={14} />
-                  </button>
-                </div>
+                <span className="ml-auto px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs">Online</span>
               </div>
-
-              {/* Platform Distribution */}
-              <div className="rounded-2xl border border-white/5 bg-[#1a1a1a] p-6">
-                <div className="mb-4">
-                  <div className="text-xs text-white/40 mb-1">Platform Stats</div>
-                  <h3 className="text-lg font-bold text-white">Audience Split</h3>
-                </div>
-                
-                <div className="flex items-center gap-6">
-                  {/* Pie Chart Placeholder */}
-                  <div className="relative h-28 w-28 shrink-0">
-                    <svg className="h-28 w-28 -rotate-90" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#252525" strokeWidth="15" />
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#a855f7" strokeWidth="15" strokeDasharray={`${53 * 2.51} 251`} strokeDashoffset="0" />
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#ef4444" strokeWidth="15" strokeDasharray={`${32 * 2.51} 251`} strokeDashoffset={`${-53 * 2.51}`} />
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#10b981" strokeWidth="15" strokeDasharray={`${15 * 2.51} 251`} strokeDashoffset={`${-(53 + 32) * 2.51}`} />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <div className="text-xl font-bold text-white">{totalSubs}</div>
-                      <div className="text-[10px] text-white/40">Total</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex-1 space-y-2">
-                    {platforms.map((p) => (
-                      <div key={p.name} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: p.color }} />
-                          <span className="text-xs text-white/60">{p.name}</span>
-                        </div>
-                        <span className="text-xs font-medium text-white">{p.percent}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              
+              <div className="bg-black/30 rounded-xl p-4 mb-4">
+                <p className="text-white/60 text-sm leading-relaxed">
+                  👋 Hi {user.username}! Based on your recent streams, I noticed your peak engagement 
+                  happens between <span className="text-purple-400">7-9 PM</span>. Consider scheduling 
+                  your next stream during this window for maximum reach.
+                </p>
               </div>
-            </div>
+              
+              <div className="flex gap-2">
+                <input
+                  value={aiQuery}
+                  onChange={(e) => setAiQuery(e.target.value)}
+                  placeholder="Ask me anything about your stream..."
+                  className="flex-1 bg-black/30 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/30 border border-white/5 focus:border-purple-500/50 focus:outline-none transition"
+                />
+                <button className="px-4 py-2.5 rounded-xl bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition">
+                  <Send size={16} />
+                </button>
+              </div>
+            </section>
 
             {/* Activity Heatmap */}
-            <div className="rounded-2xl border border-white/5 bg-[#1a1a1a] p-6">
-              <div className="flex items-center justify-between mb-4">
+            <section className="rounded-2xl bg-[#111] border border-white/5 p-6">
+              <div className="flex items-center justify-between mb-6">
                 <div>
-                  <div className="text-xs text-white/40 mb-1">Time Analysis</div>
-                  <h3 className="text-lg font-bold text-white">Stream Activity</h3>
+                  <h2 className="text-lg font-semibold text-white">Activity Heatmap</h2>
+                  <p className="text-white/40 text-sm">Chat activity by hour</p>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-white">+{stats?.totalStreams || 0}</div>
-                    <div className="text-xs text-white/40">Streams this month</div>
-                  </div>
-                  <button className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-xs text-white/60 hover:bg-white/10 transition">
-                    Weekly
-                    <ChevronDown size={12} />
-                  </button>
-                </div>
+                <Activity size={20} className="text-white/20" />
               </div>
               
-              {/* Heatmap Grid */}
-              <div className="flex gap-4">
-                <div className="flex flex-col gap-1 text-xs text-white/30">
-                  {heatmap.hours.map((h) => (
-                    <div key={h} className="h-8 flex items-center">{h}</div>
-                  ))}
-                </div>
-                <div className="flex-1">
-                  <div className="grid grid-cols-7 gap-1">
-                    {heatmap.hours.flatMap((_, hIdx) =>
-                      heatmap.days.map((_, dIdx) => {
-                        const intensity = Math.random();
-                        return (
-                          <div
-                            key={`${hIdx}-${dIdx}`}
-                            className={`h-8 rounded-md transition hover:ring-2 hover:ring-orange-500/50 ${
-                              intensity > 0.7
-                                ? 'bg-orange-500'
-                                : intensity > 0.4
-                                ? 'bg-orange-500/50'
-                                : intensity > 0.2
-                                ? 'bg-orange-500/20'
-                                : 'bg-[#252525]'
-                            }`}
-                          />
-                        );
-                      })
-                    )}
+              <div className="space-y-1">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, dayIndex) => (
+                  <div key={day} className="flex items-center gap-2">
+                    <span className="text-[10px] text-white/30 w-8">{day}</span>
+                    <div className="flex-1 flex gap-0.5">
+                      {heatmapData[dayIndex].map((value, hourIndex) => (
+                        <div
+                          key={hourIndex}
+                          className="flex-1 h-4 rounded-sm transition-colors"
+                          style={{
+                            backgroundColor: value > 0.7 
+                              ? 'rgba(249, 115, 22, 0.8)' 
+                              : value > 0.4 
+                                ? 'rgba(249, 115, 22, 0.4)' 
+                                : value > 0.2 
+                                  ? 'rgba(249, 115, 22, 0.15)'
+                                  : 'rgba(255, 255, 255, 0.03)'
+                          }}
+                          title={`${day} ${hourIndex}:00 - ${(value * 100).toFixed(0)}% activity`}
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex justify-between mt-2 text-xs text-white/30">
-                    {heatmap.days.map((d) => (
-                      <span key={d} className="w-full text-center">{d}</span>
-                    ))}
+                ))}
+                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/5">
+                  <span className="text-[10px] text-white/30 w-8"></span>
+                  <div className="flex-1 flex justify-between text-[9px] text-white/20">
+                    <span>12am</span>
+                    <span>6am</span>
+                    <span>12pm</span>
+                    <span>6pm</span>
+                    <span>11pm</span>
                   </div>
                 </div>
               </div>
+            </section>
+
+            {/* Platform Distribution */}
+            <section className="rounded-2xl bg-[#111] border border-white/5 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Platform Distribution</h2>
+                  <p className="text-white/40 text-sm">{totalSubs.toLocaleString()} total subscribers</p>
+                </div>
+              </div>
               
-              <button className="mt-4 w-full rounded-xl bg-orange-500 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 transition">
-                Create report
-              </button>
-            </div>
+              <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                {(Object.keys(PLATFORM_ICONS) as ProducerPlatform[]).slice(0, 5).map(platform => {
+                  const config = PLATFORM_ICONS[platform];
+                  const Icon = config.icon;
+                  const count = subCounts[platform] || 0;
+                  const percent = totalSubs > 0 ? Math.round((count / totalSubs) * 100) : 0;
+                  
+                  return (
+                    <div 
+                      key={platform}
+                      className={`relative overflow-hidden rounded-xl ${config.bg} border border-white/5 p-4 group hover:scale-105 transition`}
+                    >
+                      <div className={`absolute inset-0 bg-gradient-to-br ${config.gradient} opacity-0 group-hover:opacity-10 transition`} />
+                      <Icon size={24} className={`${config.color} mb-2`} />
+                      <div className="text-xl font-bold text-white">{count}</div>
+                      <div className="text-xs text-white/40">{platform}</div>
+                      <div className={`absolute top-2 right-2 text-[10px] font-medium ${config.color}`}>
+                        {percent}%
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
+          {/* Right Column - Sidebar */}
+          <div className="col-span-12 lg:col-span-4 space-y-6">
+            
             {/* Stats Cards */}
             <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'Total Streams', value: stats?.totalStreams || 0, change: '+12%', color: 'emerald', icon: Radio },
-                { label: 'Total Messages', value: stats?.totalMessages || 0, change: '+24%', color: 'orange', icon: MessageSquare },
-                { label: 'Unique Viewers', value: stats?.lastViewCount || 0, change: '-5%', color: 'red', icon: Eye },
-                { label: 'Active Subs', value: totalSubs, change: '+18%', color: 'emerald', icon: Users },
-              ].map((stat) => (
-                <div key={stat.label} className="rounded-2xl border border-white/5 bg-[#1a1a1a] p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                      stat.color === 'emerald' ? 'bg-emerald-500/10' : stat.color === 'orange' ? 'bg-orange-500/10' : 'bg-red-500/10'
-                    }`}>
-                      <stat.icon size={18} className={
-                        stat.color === 'emerald' ? 'text-emerald-400' : stat.color === 'orange' ? 'text-orange-400' : 'text-red-400'
-                      } />
-                    </div>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                      stat.change.startsWith('+') 
-                        ? 'bg-emerald-500/20 text-emerald-400' 
-                        : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      {stat.change}
-                    </span>
-                  </div>
-                  <div className="text-2xl font-bold text-white mb-0.5">{stat.value.toLocaleString()}</div>
-                  <div className="text-xs text-white/40">{stat.label}</div>
-                </div>
-              ))}
+              <StatCard 
+                icon={BarChart3}
+                label="Total Streams"
+                value={stats.totalStreams.toString()}
+                change="+12%"
+                color="purple"
+              />
+              <StatCard 
+                icon={MessageSquare}
+                label="Messages"
+                value={stats.totalMessages.toLocaleString()}
+                change="+24%"
+                color="orange"
+              />
+              <StatCard 
+                icon={Eye}
+                label="Last Viewers"
+                value={stats.lastViewCount.toLocaleString()}
+                change="+8%"
+                color="emerald"
+              />
+              <StatCard 
+                icon={Users}
+                label="Subscribers"
+                value={totalSubs.toLocaleString()}
+                change="+15%"
+                color="blue"
+              />
             </div>
 
-            {/* Recent Activity / Sessions */}
-            <div className="rounded-2xl border border-white/5 bg-[#1a1a1a] p-4">
+            {/* Recent Streams */}
+            <section className="rounded-2xl bg-[#111] border border-white/5 p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-white">Recent Sessions</h3>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-white/40">Categories</span>
-                  <ChevronDown size={12} className="text-white/40" />
-                </div>
+                <h2 className="font-semibold text-white flex items-center gap-2">
+                  <Clock size={16} className="text-orange-400" />
+                  Recent Streams
+                </h2>
+                <button 
+                  onClick={onViewHistory}
+                  className="text-xs text-orange-400 hover:text-orange-300 transition"
+                >
+                  View all
+                </button>
               </div>
               
-              {sessions.length === 0 ? (
-                <div className="py-8 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/5 mx-auto mb-3">
-                    <History size={20} className="text-white/30" />
-                  </div>
-                  <p className="text-xs text-white/40">No sessions yet</p>
+              {loading ? (
+                <div className="text-center py-6 text-white/30 text-sm">Loading...</div>
+              ) : recentSessions.length === 0 ? (
+                <div className="text-center py-6">
+                  <History size={24} className="mx-auto mb-2 text-white/20" />
+                  <p className="text-white/30 text-sm">No streams yet</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {sessions.slice(0, 4).map((session, idx) => (
-                    <div key={session.id} className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-pink-500 text-white text-xs font-bold">
-                        #{sessions.length - idx}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-white truncate">
-                          Stream Session
+                <div className="space-y-2">
+                  {recentSessions.map(session => (
+                    <div 
+                      key={session.id}
+                      className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                          <Calendar size={16} className="text-orange-400" />
                         </div>
-                        <div className="text-xs text-white/40">
-                          {new Date(session.startedAt).toLocaleDateString()}
+                        <div>
+                          <div className="text-sm font-medium text-white">
+                            {new Date(session.startedAt).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-white/40">
+                            {session.messageCount} messages
+                          </div>
                         </div>
                       </div>
-                      <div className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${
-                        idx === 0 ? 'bg-yellow-500/20 text-yellow-400' :
-                        idx === 1 ? 'bg-emerald-500/20 text-emerald-400' :
-                        'bg-white/5 text-white/40'
-                      }`}>
-                        {session.messageCount} msgs
-                      </div>
+                      <ArrowUpRight size={16} className="text-white/20" />
                     </div>
                   ))}
                 </div>
               )}
-            </div>
+            </section>
 
-            {/* Platform Cards */}
-            <div className="rounded-2xl border border-white/5 bg-[#1a1a1a] p-4">
+            {/* Connected Platforms */}
+            <section className="rounded-2xl bg-[#111] border border-white/5 p-5">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-white">Connected Platforms</h3>
-                <span className="text-xs text-white/40">9 platforms</span>
+                <h2 className="font-semibold text-white flex items-center gap-2">
+                  <TrendingUp size={16} className="text-orange-400" />
+                  Platforms
+                </h2>
               </div>
               
-              <div className="space-y-2 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-                {[
-                  { name: 'Twitch', icon: Twitch, color: '#a855f7', subs: stats?.subscriberCounts?.twitch || 0 },
-                  { name: 'YouTube', icon: Youtube, color: '#ef4444', subs: stats?.subscriberCounts?.youtube || 0 },
-                  { name: 'Kick', icon: MessageCircle, color: '#10b981', subs: stats?.subscriberCounts?.kick || 0 },
-                  { name: 'Facebook', icon: Facebook, color: '#3b82f6', subs: stats?.subscriberCounts?.facebook || 0 },
-                  { name: 'TikTok', icon: Music2, color: '#ec4899', subs: stats?.subscriberCounts?.tiktok || 0 },
-                  { name: 'Discord', icon: Gamepad2, color: '#6366f1', subs: stats?.subscriberCounts?.discord || 0 },
-                  { name: 'Bilibili', icon: Tv, color: '#06b6d4', subs: stats?.subscriberCounts?.bilibili || 0 },
-                  { name: 'X', icon: Twitter, color: '#6b7280', subs: stats?.subscriberCounts?.x || 0 },
-                  { name: 'Trovo', icon: Radio, color: '#14b8a6', subs: stats?.subscriberCounts?.trovo || 0 },
-                ].map((platform) => (
-                  <div key={platform.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-[#252525] border border-white/5 hover:border-white/10 transition">
+              <div className="space-y-2">
+                {(Object.keys(PLATFORM_ICONS) as ProducerPlatform[]).map(platform => {
+                  const config = PLATFORM_ICONS[platform];
+                  const Icon = config.icon;
+                  const count = subCounts[platform] || 0;
+                  
+                  return (
                     <div 
-                      className="flex h-8 w-8 items-center justify-center rounded-lg"
-                      style={{ backgroundColor: `${platform.color}20` }}
+                      key={platform}
+                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition"
                     >
-                      <platform.icon size={14} style={{ color: platform.color }} />
+                      <div className={`w-9 h-9 rounded-lg ${config.bg} flex items-center justify-center`}>
+                        <Icon size={16} className={config.color} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-white">{platform}</div>
+                        <div className="text-xs text-white/40">{count.toLocaleString()} subs</div>
+                      </div>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500" title="Connected" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-white">{platform.name}</div>
-                      <div className="text-[10px] text-white/40">{platform.subs.toLocaleString()} subs</div>
-                    </div>
-                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" title="Connected" />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            </div>
+            </section>
 
-            {/* View History Button */}
+            {/* Quick Actions */}
             <button
               onClick={onViewHistory}
-              className="w-full rounded-xl border border-white/10 bg-white/5 p-4 text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition flex items-center justify-center gap-2"
+              className="w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition flex items-center justify-center gap-2"
             >
               <History size={16} />
-              View Full History
+              View Stream History
             </button>
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="mt-12 py-6 border-t border-white/5 text-center text-white/20 text-sm">
+          CrossChat © {new Date().getFullYear()} — Real-time Multi-Platform Chat Aggregator
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// COMPONENTS
+// =============================================================================
+
+function NavTab({ children, active = false }: { children: React.ReactNode; active?: boolean }) {
+  return (
+    <button className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+      active 
+        ? 'bg-white/10 text-white' 
+        : 'text-white/50 hover:text-white hover:bg-white/5'
+    }`}>
+      {children}
+    </button>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, change, color }: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  change: string;
+  color: 'purple' | 'orange' | 'emerald' | 'blue';
+}) {
+  const colors = {
+    purple: { bg: 'bg-purple-500/10', text: 'text-purple-400' },
+    orange: { bg: 'bg-orange-500/10', text: 'text-orange-400' },
+    emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+    blue: { bg: 'bg-blue-500/10', text: 'text-blue-400' },
+  };
+
+  return (
+    <div className="rounded-xl bg-[#111] border border-white/5 p-4">
+      <div className={`w-10 h-10 rounded-lg ${colors[color].bg} flex items-center justify-center mb-3`}>
+        <Icon size={18} className={colors[color].text} />
+      </div>
+      <div className="text-2xl font-bold text-white">{value}</div>
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-xs text-white/40">{label}</span>
+        <span className="text-[10px] text-emerald-400 font-medium">{change}</span>
       </div>
     </div>
   );

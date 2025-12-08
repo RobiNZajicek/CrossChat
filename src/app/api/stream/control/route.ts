@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { startNewSession, endSession } from "@/lib/db";
 import { cookies } from "next/headers";
 
-export async function POST(req: Request) {
-  const session = cookies().get("streamer_session");
-  if (!session?.value) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = JSON.parse(session.value);
+export const dynamic = "force-dynamic";
 
+export async function POST(req: Request) {
+  const cookieStore = await cookies();
+  const session = cookieStore.get("streamer_session");
+  if (!session?.value) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  
+  const user = JSON.parse(session.value);
   const { action } = await req.json();
 
   if (action === "start") {
@@ -21,4 +24,3 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }
-

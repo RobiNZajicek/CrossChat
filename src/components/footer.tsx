@@ -1,70 +1,74 @@
 import Link from "next/link";
-import { MessageSquare, Github, Twitter } from "lucide-react";
+import { MessageSquareShare, Github, Twitter } from "lucide-react";
 
 export function Footer() {
   return (
-    <footer className="border-t border-white/5 bg-[#0a0a0a] py-16">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="grid gap-12 md:grid-cols-4">
+    <footer className="border-t border-white/5 bg-[#050505]">
+      <div className="mx-auto max-w-7xl px-6 py-12">
+        <div className="grid gap-8 md:grid-cols-4">
           {/* Brand */}
-          <div className="md:col-span-1">
-            <Link href="/" className="flex items-center gap-2.5 mb-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500">
-                <MessageSquare className="text-white" size={18} />
+          <div className="space-y-4">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-red-600">
+                <MessageSquareShare className="text-white" size={16} />
               </div>
-              <span className="text-lg font-bold text-white">CrossChat</span>
+              <span className="text-lg font-bold text-white">
+                Cross<span className="text-orange-400">Chat</span>
+              </span>
             </Link>
             <p className="text-sm text-white/40 leading-relaxed">
-              Unify your stream chat across Twitch, YouTube, and Kick in one beautiful dashboard.
+              Unified streaming chat for professional broadcasters. One feed, all platforms.
             </p>
-            <div className="flex items-center gap-3 mt-6">
-              <a href="#" className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition">
+            <div className="flex gap-3">
+              <a href="#" className="p-2 rounded-lg bg-white/5 text-white/40 hover:text-white hover:bg-white/10 transition">
                 <Twitter size={16} />
               </a>
-              <a href="#" className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/5 text-white/40 hover:bg-white/10 hover:text-white transition">
+              <a href="#" className="p-2 rounded-lg bg-white/5 text-white/40 hover:text-white hover:bg-white/10 transition">
                 <Github size={16} />
               </a>
             </div>
           </div>
 
-          {/* Links */}
+          {/* Product */}
           <div>
-            <div className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-4">Product</div>
-            <ul className="space-y-3">
-              <li><Link href="/#features" className="text-sm text-white/50 hover:text-white transition">Features</Link></li>
-              <li><Link href="/#pricing" className="text-sm text-white/50 hover:text-white transition">Pricing</Link></li>
-              <li><Link href="/dashboard" className="text-sm text-white/50 hover:text-white transition">Dashboard</Link></li>
-              <li><Link href="#" className="text-sm text-white/50 hover:text-white transition">API</Link></li>
+            <h4 className="text-sm font-semibold text-white mb-4">Product</h4>
+            <ul className="space-y-2 text-sm text-white/40">
+              <li><Link href="/#features" className="hover:text-orange-400 transition">Features</Link></li>
+              <li><Link href="/#pricing" className="hover:text-orange-400 transition">Pricing</Link></li>
+              <li><Link href="/dashboard" className="hover:text-orange-400 transition">Dashboard</Link></li>
+              <li><a href="#" className="hover:text-orange-400 transition">API Docs</a></li>
             </ul>
           </div>
 
+          {/* Company */}
           <div>
-            <div className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-4">Company</div>
-            <ul className="space-y-3">
-              <li><Link href="#" className="text-sm text-white/50 hover:text-white transition">About</Link></li>
-              <li><Link href="#" className="text-sm text-white/50 hover:text-white transition">Blog</Link></li>
-              <li><Link href="#" className="text-sm text-white/50 hover:text-white transition">Careers</Link></li>
-              <li><Link href="/#support" className="text-sm text-white/50 hover:text-white transition">Contact</Link></li>
+            <h4 className="text-sm font-semibold text-white mb-4">Company</h4>
+            <ul className="space-y-2 text-sm text-white/40">
+              <li><a href="#" className="hover:text-orange-400 transition">About</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition">Blog</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition">Careers</a></li>
+              <li><Link href="/#support" className="hover:text-orange-400 transition">Contact</Link></li>
             </ul>
           </div>
 
+          {/* Legal */}
           <div>
-            <div className="text-xs font-semibold text-white/30 uppercase tracking-wider mb-4">Legal</div>
-            <ul className="space-y-3">
-              <li><Link href="#" className="text-sm text-white/50 hover:text-white transition">Privacy</Link></li>
-              <li><Link href="#" className="text-sm text-white/50 hover:text-white transition">Terms</Link></li>
-              <li><Link href="#" className="text-sm text-white/50 hover:text-white transition">Cookie Policy</Link></li>
+            <h4 className="text-sm font-semibold text-white mb-4">Legal</h4>
+            <ul className="space-y-2 text-sm text-white/40">
+              <li><a href="#" className="hover:text-orange-400 transition">Privacy Policy</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition">Terms of Service</a></li>
+              <li><a href="#" className="hover:text-orange-400 transition">Cookie Policy</a></li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-16 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-xs text-white/30">
             © {new Date().getFullYear()} CrossChat. All rights reserved.
           </p>
-          <div className="flex items-center gap-6 text-xs text-white/30">
-            <span>Made with <span className="text-orange-400">♥</span> for streamers</span>
-          </div>
+          <p className="text-xs text-white/30">
+            Made with 🧡 for streamers worldwide
+          </p>
         </div>
       </div>
     </footer>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 export async function POST() {
-  cookies().delete("streamer_session");
+  const cookieStore = await cookies();
+  cookieStore.delete("streamer_session");
   return NextResponse.json({ ok: true });
 }
-

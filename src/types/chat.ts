@@ -3,7 +3,7 @@
 // Pouziva se v celem projektu (frontend, backend, worker)
 // =============================================================================
 
-// Podporovane platformy
+// Podporovane platformy (9 celkem)
 export type ProducerPlatform = 
   | "Twitch" 
   | "YouTube" 

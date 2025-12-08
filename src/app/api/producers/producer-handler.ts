@@ -1,40 +1,29 @@
-// =============================================================================
-// PRODUCER HANDLER - Factory pro API handlery jednotlivych platforem
-// Kazda platforma (Twitch, YouTube, Kick) pouziva tento handler
-// Prijima POST requesty s chat zpravami a dispatchuje je do workeru
-// =============================================================================
-
 import { NextResponse, type NextRequest } from "next/server";
 import { dispatchToWorker } from "@/lib/worker-manager";
 import type { ProducerPlatform } from "@/types/chat";
 import { cookies } from "next/headers";
 
-// Vynuceni Node.js runtime (ne Edge) - potrebujeme worker thready a SharedArrayBuffer
 export const runtime = "nodejs"; 
 export const dynamic = "force-dynamic";
 
-// Predpripravena chybova odpoved
 const invalidPayload = NextResponse.json(
   { error: "Both user and text are required" },
   { status: 400 },
 );
 
-// Factory funkce - vytvori handler pro danou platformu
-// Pouziti: export const POST = createProducerHandler("Twitch")
 export const createProducerHandler =
   (platform: ProducerPlatform) => async (request: NextRequest) => {
-    // Pouze POST metoda
     if (request.method !== "POST") {
       return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
     }
 
-    // 1. Autentizace - kontrola session cookie
-    const session = cookies().get("streamer_session");
+    // 1. Authenticate Request
+    const cookieStore = await cookies();
+    const session = cookieStore.get("streamer_session");
     if (!session?.value) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Parse session cookie (obsahuje user ID a username)
     let user;
     try {
       user = JSON.parse(session.value);
@@ -42,7 +31,7 @@ export const createProducerHandler =
       return NextResponse.json({ error: "Invalid session" }, { status: 401 });
     }
 
-    // 2. Parse request body
+    // 2. Parse Payload
     let payload: Record<string, unknown>;
     try {
       payload = await request.json();
@@ -53,7 +42,6 @@ export const createProducerHandler =
       );
     }
 
-    // Extrakce a validace poli
     const username = typeof payload.user === "string" ? payload.user : "";
     const text = typeof payload.text === "string" ? payload.text : "";
     const isVip = typeof payload.isVip === "boolean" ? payload.isVip : false;
@@ -66,8 +54,7 @@ export const createProducerHandler =
     }
 
     try {
-      // 3. Dispatch do worker threadu
-      // StreamerId z session = zprava se ulozi do spravneho chatu
+      // 3. Dispatch to Worker with streamerId from session
       dispatchToWorker(platform, { 
         streamerId: user.id,
         user: username, 

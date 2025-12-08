@@ -1,12 +1,15 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { findUserById } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
-  const session = cookies().get("streamer_session");
+  const cookieStore = await cookies();
+  const session = cookieStore.get("streamer_session");
   
-  if (!session?.value) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
   try {
@@ -17,12 +20,16 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Vrati user data bez passwordHash
-    const { passwordHash, ...userData } = user;
-    
-    return NextResponse.json({ user: userData });
+    return NextResponse.json({
+      id: user.id,
+      username: user.username,
+      createdAt: user.createdAt,
+      activeSessionId: user.activeSessionId,
+      sessions: user.sessions || [],
+      stats: user.stats,
+      subscriberCounts: user.subscriberCounts
+    });
   } catch {
     return NextResponse.json({ error: "Invalid session" }, { status: 401 });
   }
 }
-
