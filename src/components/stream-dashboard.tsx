@@ -227,6 +227,20 @@ export function StreamDashboard({ streamerId, onStreamEnd }: Props) {
   useEffect(() => {
     if (view !== "live") return;
 
+    // MUST be defined BEFORE socket handlers!
+    const handleIncomingMessage = (message: ChatMessage) => {
+      console.log("[Chat] Received message:", message.user, message.text);
+      
+      if (message.streamerId && message.streamerId !== streamerId) return;
+
+      setMessages((prev) => {
+        if (messageIds.current.has(message.id)) return prev;
+        messageIds.current.add(message.id);
+        console.log("[Chat] Added message to state, total:", prev.length + 1);
+        return sortMessages([...prev, message]);
+      });
+    };
+
     const initSocket = async () => {
       try {
         await fetch("/api/socket");
@@ -247,45 +261,38 @@ export function StreamDashboard({ streamerId, onStreamEnd }: Props) {
       socketRef.current = socket;
 
       socket.on("connect", () => {
+        console.log("[Chat] Socket connected, joining room:", streamerId);
         setIsConnected(true);
         socket.emit("join", streamerId);
       });
 
       socket.on("reconnect", () => {
+        console.log("[Chat] Socket reconnected");
         socket.emit("join", streamerId);
       });
 
       socket.on("disconnect", () => {
+        console.log("[Chat] Socket disconnected");
         setIsConnected(false);
       });
 
       socket.on("chat:message", (message: ChatMessage) => {
+        console.log("[Chat] Received chat:message event");
         handleIncomingMessage(message);
       });
 
       socket.on("chat:message:global", (message: ChatMessage) => {
+        console.log("[Chat] Received chat:message:global event");
         if (message.streamerId === streamerId) {
           handleIncomingMessage(message);
         }
       });
     });
 
-    const handleIncomingMessage = (message: ChatMessage) => {
-      if (message.streamerId && message.streamerId !== streamerId) return;
-
-      setMessages((prev) => {
-        if (messageIds.current.has(message.id)) return prev;
-        messageIds.current.add(message.id);
-        return sortMessages([...prev, message]);
-      });
-    };
-
-    // Polling fallback
+    // Polling - always poll as reliable fallback (socket is bonus for speed)
     const pollInterval = setInterval(() => {
-      if (!socketRef.current?.connected) {
         fetchMessages();
-      }
-    }, 2000);
+    }, 1500);
 
     fetchMessages();
 

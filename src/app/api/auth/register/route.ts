@@ -1,3 +1,6 @@
+// Register endpoint - registruje novyho uzivatele
+// Posles username a heslo, vytvori se novej account a automaticky te prihlasi
+
 import { NextResponse } from "next/server";
 import { findUserByUsername, saveUser, type User } from "@/lib/db";
 import bcrypt from "bcryptjs";
@@ -10,6 +13,7 @@ export async function POST(req: Request) {
   try {
     const { username, password } = await req.json();
 
+    // Zakladni validace - musi byt oba
     if (!username || !password) {
       return NextResponse.json(
         { error: "Username and password are required" },
@@ -17,6 +21,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // Username musi mit aspon 3 znaky
     if (username.length < 3) {
       return NextResponse.json(
         { error: "Username must be at least 3 characters" },
@@ -24,6 +29,7 @@ export async function POST(req: Request) {
       );
     }
 
+    // Heslo musi mit aspon 6 znaku (bezpecnost first!)
     if (password.length < 6) {
       return NextResponse.json(
         { error: "Password must be at least 6 characters" },
@@ -31,7 +37,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if username exists
+    // Checkneme jestli uz username neni zabrany
     if (findUserByUsername(username)) {
       return NextResponse.json(
         { error: "Username already taken" },
@@ -39,8 +45,12 @@ export async function POST(req: Request) {
       );
     }
 
+    // Zahashujeme heslo - nikdy neukladame plaintext!
+    // bcrypt.hash s 10 rounds je dobry kompromis mezi bezpecnosti a rychlosti
     const hashedPassword = await bcrypt.hash(password, 10);
     
+    // Vytvorime novyho usera s nahodnyma subscriber counts
+    // (v realny appce by tohle prislo z API Twitche atd)
     const newUser: User = {
       id: randomUUID(),
       username,
@@ -52,6 +62,7 @@ export async function POST(req: Request) {
         totalStreams: 0,
         lastViewCount: 0,
       },
+      // Nahodny subscriber counts pro demo ucely
       subscriberCounts: {
         Twitch: Math.floor(Math.random() * 1000) + 50,
         YouTube: Math.floor(Math.random() * 500) + 20,
@@ -65,9 +76,10 @@ export async function POST(req: Request) {
       },
     };
 
+    // Ulozime do "databaze" (v nasem pripade JSON file)
     saveUser(newUser);
 
-    // Auto-login after registration
+    // Auto-login - rovnou ho prihlasime at nemusi znova zadavat heslo
     const cookieStore = await cookies();
     cookieStore.set("streamer_session", JSON.stringify({ id: newUser.id, username: newUser.username }), {
       httpOnly: true,
@@ -77,7 +89,7 @@ export async function POST(req: Request) {
       maxAge: 60 * 60 * 24 * 7,
     });
 
-    console.log("[Register] New user created:", newUser.username);
+    console.log("[Register] Novej uzivatel vytvoren:", newUser.username);
 
     return NextResponse.json({ ok: true, user: { id: newUser.id, username: newUser.username } });
   } catch (error) {
