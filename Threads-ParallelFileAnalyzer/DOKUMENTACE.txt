@@ -1,0 +1,386 @@
+================================================================================
+PARALLEL FILE ANALYZER - DOKUMENTACE ŘÁDEK PO ŘÁDKU
+================================================================================
+
+using System;
+    → Základní funkce C# (Console.WriteLine, DateTime, Math...)
+
+using System.Collections.Generic;
+    → Kolekce: List, Dictionary, Queue
+
+using System.IO;
+    → Práce se soubory: File, FileStream, StreamReader
+
+using System.Text;
+    → Kódování textu: Encoding.UTF8
+
+using System.Threading;
+    → THREADY: Thread, Monitor, lock
+
+--------------------------------------------------------------------------------
+
+namespace ParallelProcessor
+    → Jmenný prostor - organizace kódu
+
+class Program
+    → Hlavní třída programu
+
+--------------------------------------------------------------------------------
+PROMĚNNÉ TŘÍDY (sdílené mezi všemi thready)
+--------------------------------------------------------------------------------
+
+private const int NUM_THREADS = 4;
+    → Konstanta - počet threadů které vytvoříme
+
+private static int[] _wordCounts = null!;
+    → Pole kde každý thread uloží svůj počet slov
+    → _wordCounts[0] = počet slov od Thread-1
+    → _wordCounts[1] = počet slov od Thread-2, atd.
+
+private static int[] _lineCounts = null!;
+    → Stejné jako výše, ale pro počet řádků
+
+private static Dictionary<string, int>[] _wordFrequencies = null!;
+    → Pole slovníků - každý thread má svůj slovník
+    → Slovník mapuje slovo na počet výskytů: {"hello": 5, "world": 3}
+
+private static readonly object _consoleLock = new object();
+    → Objekt pro zamykání výpisu do konzole
+    → Bez něj by se výpisy z různých threadů míchaly
+
+--------------------------------------------------------------------------------
+METODA MAIN - vstupní bod programu
+--------------------------------------------------------------------------------
+
+static void Main(string[] args)
+    → Hlavní metoda, spustí se při startu programu
+    → args = argumenty z příkazové řádky
+
+string? filePath = args.Length > 0 ? args[0] : null;
+    → Pokud uživatel zadal cestu k souboru, použij ji
+    → Jinak filePath = null
+    → "?" značí že proměnná může být null
+
+if (filePath == null || !File.Exists(filePath))
+    → Pokud cesta není zadaná NEBO soubor neexistuje
+
+filePath = "testfile.txt";
+    → Použij testovací soubor
+
+CreateTestFile(filePath, 100000);
+    → Vytvoř testovací soubor se 100000 řádky
+
+Console.WriteLine($"Vytvořen testovací soubor: {filePath}");
+    → Vypiš zprávu do konzole
+    → $ = string interpolation (vloží proměnnou do textu)
+
+var fileInfo = new FileInfo(filePath);
+    → Získej informace o souboru (velikost, datum...)
+    → var = kompilátor odvodí typ automaticky
+
+Console.WriteLine($"Velikost: {fileInfo.Length / 1024.0:F2} KB");
+    → Vypiš velikost souboru v KB
+    → :F2 = formát na 2 desetinná místa
+
+_wordCounts = new int[NUM_THREADS];
+    → Vytvoř pole pro 4 čísla (indexy 0,1,2,3)
+
+_lineCounts = new int[NUM_THREADS];
+    → Stejné pro počty řádků
+
+_wordFrequencies = new Dictionary<string, int>[NUM_THREADS];
+    → Pole 4 slovníků (každý thread bude mít svůj)
+
+long fileSize = fileInfo.Length;
+    → Velikost souboru v bytech
+    → long = 64-bit číslo (pro velké soubory)
+
+long chunkSize = fileSize / NUM_THREADS;
+    → Velikost jedné části = celková velikost / 4
+
+var startTime = DateTime.Now;
+    → Zaznamenej aktuální čas (pro měření rychlosti)
+
+Thread[] threads = new Thread[NUM_THREADS];
+    → Pole pro 4 thready
+
+--------------------------------------------------------------------------------
+CYKLUS - vytvoření threadů
+--------------------------------------------------------------------------------
+
+for (int i = 0; i < NUM_THREADS; i++)
+    → Opakuj 4x (i = 0, 1, 2, 3)
+
+int threadId = i;
+    → DŮLEŽITÉ: zkopíruj hodnotu i do lokální proměnné
+    → Bez tohoto by všechny thready viděly i=4 (finální hodnotu)
+
+long startPos = i * chunkSize;
+    → Začátek části pro tento thread
+    → Thread 0: začíná na 0%
+    → Thread 1: začíná na 25%
+    → Thread 2: začíná na 50%
+    → Thread 3: začíná na 75%
+
+long endPos = (i == NUM_THREADS - 1) ? fileSize : (i + 1) * chunkSize;
+    → Konec části pro tento thread
+    → Poslední thread (i=3) jde až do konce souboru
+
+int percentage = (int)((endPos - startPos) * 100 / fileSize);
+    → Vypočítej kolik procent souboru thread zpracuje
+
+SafeLog($"Thread-{threadId + 1}: pozice {startPos}-{endPos} ({percentage}% souboru)");
+    → Vypiš informaci o threadu
+
+threads[i] = new Thread(() => ProcessChunk(filePath, threadId, startPos, endPos));
+    → Vytvoř nový thread
+    → () => ... je lambda (anonymní funkce)
+    → Thread bude volat metodu ProcessChunk s danými parametry
+
+threads[i].Name = $"Worker-{threadId + 1}";
+    → Pojmenuj thread (pro ladění)
+
+--------------------------------------------------------------------------------
+SPUŠTĚNÍ THREADŮ
+--------------------------------------------------------------------------------
+
+foreach (var t in threads)
+    → Pro každý thread v poli
+
+t.Start();
+    → Spusť thread
+    → Thread začne běžet PARALELNĚ s ostatními
+    → Kód pokračuje dál, NEČEKÁ na dokončení
+
+--------------------------------------------------------------------------------
+ČEKÁNÍ NA DOKONČENÍ
+--------------------------------------------------------------------------------
+
+foreach (var t in threads)
+
+t.Join();
+    → Počkej dokud thread neskončí
+    → Hlavní program čeká na všechny workery
+
+var elapsed = DateTime.Now - startTime;
+    → Vypočítej kolik času uběhlo
+
+--------------------------------------------------------------------------------
+AGREGACE VÝSLEDKŮ
+--------------------------------------------------------------------------------
+
+int totalWords = 0;
+int totalLines = 0;
+var totalFrequency = new Dictionary<string, int>();
+    → Proměnné pro celkové součty
+
+for (int i = 0; i < NUM_THREADS; i++)
+    → Pro každý thread
+
+Console.WriteLine($"Thread-{i + 1}: {_lineCounts[i]} řádků, {_wordCounts[i]} slov");
+    → Vypiš výsledky od každého threadu
+
+totalWords += _wordCounts[i];
+    → Přičti počet slov od tohoto threadu
+
+totalLines += _lineCounts[i];
+    → Přičti počet řádků od tohoto threadu
+
+if (_wordFrequencies[i] != null)
+    → Pokud thread má slovník frekvencí
+
+foreach (var kvp in _wordFrequencies[i])
+    → Pro každý pár klíč-hodnota ve slovníku
+    → kvp.Key = slovo
+    → kvp.Value = počet výskytů
+
+if (!totalFrequency.ContainsKey(kvp.Key))
+    totalFrequency[kvp.Key] = 0;
+    → Pokud slovo ještě není v celkovém slovníku, přidej ho
+
+totalFrequency[kvp.Key] += kvp.Value;
+    → Přičti počet výskytů
+
+--------------------------------------------------------------------------------
+SEŘAZENÍ A VÝPIS TOP 10
+--------------------------------------------------------------------------------
+
+var sortedWords = new List<KeyValuePair<string, int>>(totalFrequency);
+    → Převeď slovník na list (list lze řadit)
+
+sortedWords.Sort((a, b) => b.Value.CompareTo(a.Value));
+    → Seřaď sestupně podle počtu výskytů
+    → (a, b) => ... je porovnávací funkce
+    → b.CompareTo(a) = sestupně (od největšího)
+
+for (int i = 0; i < Math.Min(10, sortedWords.Count); i++)
+    → Vypiš max 10 slov
+    → Math.Min = menší z dvou hodnot
+
+Console.WriteLine($"{i + 1}. \"{sortedWords[i].Key}\" - {sortedWords[i].Value}x");
+    → Vypiš pořadí, slovo a počet výskytů
+
+================================================================================
+METODA ProcessChunk - zpracování části souboru (běží v každém threadu)
+================================================================================
+
+static void ProcessChunk(string filePath, int threadId, long startPos, long endPos)
+    → Tato metoda běží PARALELNĚ ve 4 threadech
+    → Každý thread má jiné startPos a endPos
+
+_wordFrequencies[threadId] = new Dictionary<string, int>();
+    → Vytvoř slovník pro tento thread
+    → Každý thread píše do jiného indexu = bezpečné
+
+int wordCount = 0;
+int lineCount = 0;
+    → Lokální počítadla (každý thread má svoje)
+
+SafeLog($"[{Thread.CurrentThread.Name}] Začínám zpracování...");
+    → Vypiš že thread začíná
+    → Thread.CurrentThread.Name = jméno aktuálního threadu
+
+using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+    → Otevři soubor pro čtení
+    → FileMode.Open = otevři existující
+    → FileAccess.Read = pouze čtení
+    → FileShare.Read = ostatní thready mohou také číst
+    → using = automaticky zavře soubor na konci
+
+stream.Seek(startPos, SeekOrigin.Begin);
+    → Přesuň se na pozici v souboru
+    → SeekOrigin.Begin = od začátku souboru
+
+if (startPos > 0)
+    → Pokud nezačínáme od začátku souboru
+
+while (stream.Position < endPos)
+    → Dokud jsme v naší části
+
+int b = stream.ReadByte();
+    → Přečti jeden byte
+
+if (b == -1 || b == '\n')
+    break;
+    → Pokud konec souboru nebo konec řádku, skonči
+    → Toto zajistí že nezačneme uprostřed slova
+
+using (var reader = new StreamReader(stream, Encoding.UTF8, false, 4096, true))
+    → StreamReader čte text (ne surové byty)
+    → Encoding.UTF8 = kódování textu
+    → 4096 = velikost bufferu
+    → true = nechat stream otevřený
+
+string? line;
+    → Proměnná pro aktuální řádek
+
+while (stream.Position < endPos && (line = reader.ReadLine()) != null)
+    → Dokud jsme v naší části A jsou další řádky
+    → (line = reader.ReadLine()) přečte řádek A uloží ho do line
+
+lineCount++;
+    → Zvyš počítadlo řádků
+
+string[] words = line.Split(new[] { ' ', '\t', ',', '.', '!', '?', ';', ':' }, 
+                             StringSplitOptions.RemoveEmptyEntries);
+    → Rozděl řádek na slova podle mezer a interpunkce
+    → RemoveEmptyEntries = vynech prázdné stringy
+
+foreach (var word in words)
+    → Pro každé slovo
+
+string cleanWord = word.ToLower().Trim();
+    → Převeď na malá písmena a odstraň mezery
+
+if (cleanWord.Length > 2)
+    → Ignoruj krátká slova (spojky, předložky)
+
+wordCount++;
+    → Zvyš počítadlo slov
+
+if (!_wordFrequencies[threadId].ContainsKey(cleanWord))
+    _wordFrequencies[threadId][cleanWord] = 0;
+    → Pokud slovo není ve slovníku, přidej ho s hodnotou 0
+
+_wordFrequencies[threadId][cleanWord]++;
+    → Zvyš počet výskytů slova
+
+_wordCounts[threadId] = wordCount;
+_lineCounts[threadId] = lineCount;
+    → Ulož výsledky do sdíleného pole
+    → Každý thread píše do jiného indexu = bezpečné
+
+SafeLog($"[{Thread.CurrentThread.Name}] Hotovo: {lineCount} řádků, {wordCount} slov");
+    → Vypiš že thread skončil
+
+================================================================================
+METODA CreateTestFile - vytvoření testovacího souboru
+================================================================================
+
+static void CreateTestFile(string path, int lines)
+    → Vytvoří soubor s náhodným textem
+
+string[] sampleWords = { "program", "thread", ... };
+    → Pole vzorových slov
+
+var random = new Random();
+    → Generátor náhodných čísel
+
+using (var writer = new StreamWriter(path))
+    → Otevři soubor pro zápis
+
+for (int i = 0; i < lines; i++)
+    → Pro každý řádek (100000x)
+
+int wordsInLine = random.Next(5, 15);
+    → Náhodný počet slov 5-14
+    → Next(min, max) = min včetně, max nevčetně
+
+var lineWords = new List<string>();
+    → Seznam slov pro tento řádek
+
+lineWords.Add(sampleWords[random.Next(sampleWords.Length)]);
+    → Přidej náhodné slovo ze vzorových
+
+writer.WriteLine(string.Join(" ", lineWords));
+    → Spoj slova mezerami a zapiš řádek
+
+================================================================================
+METODA SafeLog - bezpečný výpis do konzole
+================================================================================
+
+static void SafeLog(string message)
+
+lock (_consoleLock)
+    → ZAMKNI - pouze jeden thread může být uvnitř
+    → Ostatní thready čekají
+
+Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] {message}");
+    → Vypiš zprávu s časem
+
+    → Na konci bloku se zámek automaticky odemkne
+
+================================================================================
+SHRNUTÍ - CO JE DŮLEŽITÉ PRO VYSVĚTLENÍ
+================================================================================
+
+1. PARALELISMUS:
+   - 4 thready běží SOUČASNĚ, každý zpracovává 25% souboru
+   - Thread.Start() spustí thread, nečeká na něj
+   - Thread.Join() počká na dokončení threadu
+
+2. SYNCHRONIZACE:
+   - lock(_consoleLock) zajistí že jen 1 thread vypisuje najednou
+   - Bez locku by se výpisy míchaly dohromady
+
+3. SDÍLENÁ DATA:
+   - Pole _wordCounts, _lineCounts, _wordFrequencies jsou sdílená
+   - Každý thread píše do JINÉHO indexu = není potřeba lock
+   - Kdybychom psali do stejného místa, potřebovali bychom lock
+
+4. REÁLNÉ POUŽITÍ:
+   - Zpracovává skutečné soubory
+   - Počítá reálná slova a frekvence
+   - Lze použít pro analýzu logů, textů, CSV souborů
+
+================================================================================

@@ -1,0 +1,11 @@
+# Build results
+bin/
+obj/
+
+# Test files
+testfile.txt
+
+# IDE
+.vs/
+*.user
+
