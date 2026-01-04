@@ -1,3 +1,43 @@
+# 📚 Portfolio - Robin Zajicek (zajicek3)
+
+> **SPSE Jecna, Praha | 2026**
+
+---
+
+## 🗂️ Obsah Portfolio
+
+| Projekt | Typ | Slozka | Popis |
+|---------|-----|--------|-------|
+| **D1 - E-Shop** | Databaze (Repository Pattern) | [D1-Eshop-Database/](./D1-Eshop-Database/) | E-shop s Flask API a Next.js |
+| **CrossChat** | Threads (WebSocket, REST, Webhook) | tento adresar | Multi-platform chat aggregator |
+
+---
+
+## 📦 D1 - E-Shop (Databazovy projekt)
+
+**Oznaceni:** D1 - Repository Pattern
+
+➡️ **[Kompletni dokumentace](./D1-Eshop-Database/README.md)**
+
+| Technologie | Stack |
+|-------------|-------|
+| Backend | Python Flask, pyodbc |
+| Frontend | Next.js 16, React |
+| Databaze | Microsoft SQL Server |
+| Pattern | Repository Pattern (D1) |
+
+**Splnene pozadavky:**
+- ✅ 5 tabulek + 2 views + M:N vazba
+- ✅ CRUD operace pres vice tabulek
+- ✅ Transakce (prevod kreditu, vytvoreni objednavky)
+- ✅ Report z 3+ tabulek
+- ✅ Import z JSON
+- ✅ 3x testovaci scenar + dokumentace
+
+---
+
+## 🎮 CrossChat (Threads projekt)
+
 # 🎮 CrossChat - Unified Stream Chat Platform
 
 > **Multi-platform chat aggregator s AI moderací, Worker Threads, a real-time analytics**
