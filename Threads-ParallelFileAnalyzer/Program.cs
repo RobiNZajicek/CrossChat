@@ -11,14 +11,17 @@ namespace ParallelProcessor
             
             logger.Log("=== Parallel File Analyzer ===");
             
-            // vytvorime testovaci soubor
+            // pripravime testovaci soubor
             string testFile = "testfile.txt";
-            logger.Log("Generuji testovaci soubor...");
-            TestFileGenerator.Create(testFile, 10000);  // 10000 radku
+            if (!File.Exists(testFile))
+            {
+                logger.Log("Generuji testovaci soubor...");
+                TestFileGenerator.Create(testFile, 50000);  // 50000 radku
+            }
             
-            // info o souboru
-            var fileInfo = new FileInfo(testFile);
-            logger.Log($"Soubor vytvoren: {fileInfo.Length / 1024.0:F2} KB");
+            // spustime analyzu se 4 thready
+            var analyzer = new FileAnalyzer(threadCount: 4, logger);
+            analyzer.Analyze(testFile);
         }
     }
 }

@@ -9,8 +9,8 @@ namespace ParallelProcessor
     public class ChunkProcessor
     {
         private readonly string _filePath;
-        private readonly long _startPos;    // kde v souboru zacinam
-        private readonly long _endPos;      // kde v souboru koncim
+        private readonly long _startPos;    // zacatek cteni 
+        private readonly long _endPos;      // konec cteni
         private readonly ConsoleLogger _logger;
 
         public ChunkProcessor(string filePath, long startPos, long endPos, ConsoleLogger logger)
@@ -21,7 +21,7 @@ namespace ParallelProcessor
             _logger = logger;
         }
 
-        // zpracuje svoji cast a vrati vysledek
+        // zpracuje cast a vrati vysledek 
         public AnalysisResult Process()
         {
             var result = new AnalysisResult();
