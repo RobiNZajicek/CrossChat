@@ -1,0 +1,82 @@
+================================================================================
+PARALLEL FILE ANALYZER - DOKUMENTACE
+================================================================================
+
+CO PROGRAM DELA:
+Paralelne analyzuje textovy soubor. Rozdeli ho na 4 casti, kazdy thread
+zpracuje svou cast (pocita slova, radky, frekvenci slov) a vysledky se slouci.
+
+================================================================================
+STRUKTURA TRID
+================================================================================
+
+Program.cs
+    → Vstupni bod programu
+    → Zpracuje argumenty (soubor, pocet threadu)
+    → Vytvori FileAnalyzer a spusti analyzu
+
+ConsoleLogger.cs
+    → Thread-safe vypis do konzole
+    → Pouziva lock aby se vypisy nepromichaly
+    → Metody: Log(), LogWithThread()
+
+AnalysisResult.cs
+    → Datova trida pro vysledky
+    → Kazdy thread ma svoji instanci
+    → Obsahuje: WordCount, LineCount, WordFrequency
+
+TestFileGenerator.cs
+    → Generuje testovaci soubory s nahodnymi slovy
+    → Staticka trida (nepotrebuje instanci)
+
+ChunkProcessor.cs
+    → Worker - bezi v kazdem threadu
+    → Dostane cast souboru (startPos az endPos)
+    → Cte radky, pocita slova, vraci AnalysisResult
+
+FileAnalyzer.cs
+    → Hlavni orchestrator
+    → Vytvari thready, rozdeluje praci
+    → Spousti thready paralelne
+    → Ceka na dokonceni (Join)
+    → Slucuje vysledky a vypisuje
+
+================================================================================
+KLICOVE KONCEPTY
+================================================================================
+
+1. THREAD (vlakno)
+   = Nezavisla jednotka vykonavani kodu
+   
+   Thread thread = new Thread(() => { /* kod */ });
+   thread.Start();   // spusti thread (bezi na pozadi)
+   thread.Join();    // pocka az thread skonci
+
+2. LOCK (zamek)
+   = Zajisti ze jen jeden thread muze byt uvnitr bloku
+   
+   lock (_lock)
+   {
+       Console.WriteLine("jen jeden naraz");
+   }
+
+3. PARALELNI CTENI SOUBORU
+   FileShare.Read umozni vice threadum cist stejny soubor naraz
+   Kazdy ma svoji pozici (Seek)
+
+4. CLOSURE PROBLEM
+   int threadId = i;  // DULEZITE - kopie hodnoty
+   
+   Bez tohoto by vsechny thready videly posledni hodnotu i
+
+================================================================================
+PROC TO NENI SIMULACE
+================================================================================
+
+- Zpracovava SKUTECNY soubor na disku
+- Pocita REALNA slova a frekvence
+- Dava UZITECNY vystup (statistiky, TOP 10)
+- Je to RYCHLEJSI nez sekvencni zpracovani
+
+================================================================================
+
