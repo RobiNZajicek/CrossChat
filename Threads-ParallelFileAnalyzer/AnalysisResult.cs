@@ -5,12 +5,12 @@ namespace ParallelProcessor
     // ulozi vysledky analyzy od jednoho threadu
     public class AnalysisResult
     {
-        public int WordCount { get; set; }      // pocet slov
-        public int LineCount { get; set; }      // pocet radku
+        public int WordCount { get; set; }     
+        public int LineCount { get; set; }     
         
         // frekvence slov: slovo -> kolikrat se vyskytlo
         public Dictionary<string, int> WordFrequency { get; }
-
+        //kazdy thread ma svuj result word county a line count a slovnik frekvenci slov
         public AnalysisResult()
         {
             WordCount = 0;
