@@ -10,14 +10,16 @@ namespace ParallelProcessor
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("=== Parallel File Analyzer ===");
-            Console.WriteLine("Program pro paralelni analyzu textovych souboru");
-            Console.WriteLine();
+            // vytvorime logger - bude sdilet vsechny thready
+            var logger = new ConsoleLogger();
+            
+            logger.Log("=== Parallel File Analyzer ===");
+            logger.Log("Program pro paralelni analyzu textovych souboru");
+            
+            // ukazka logovani s nazvem threadu
+            logger.LogWithThread("Toto je hlavni thread");
             
             // TODO: Zde vytvorime FileAnalyzer a spustime analyzu
-            // To udelame v dalsich commitech
-            
-            Console.WriteLine("Zatim nic nedelame, ale brzy budeme!");
         }
     }
 }
