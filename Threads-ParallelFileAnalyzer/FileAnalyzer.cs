@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace ParallelProcessor
 {
-    // ridi celou analyzu - vytvari thready a sbira vysledky
+    
     public class FileAnalyzer
     {
         private readonly int _threadCount;
@@ -18,7 +18,7 @@ namespace ParallelProcessor
             _logger = logger;
         }
 
-        // spusti analyzu souboru
+        
         public void Analyze(string filePath)
         {
             var fileInfo = new FileInfo(filePath);
@@ -32,17 +32,17 @@ namespace ParallelProcessor
 
             _results = new AnalysisResult[_threadCount];
             
-            // vytvorime a spustime thready
+            
             var startTime = DateTime.Now;
             Thread[] threads = CreateThreads(filePath, fileSize, chunkSize);
             StartThreads(threads);
             WaitForThreads(threads);
             var elapsed = DateTime.Now - startTime;
 
-            // agregace a vypis vysledku
+            
             PrintResults(elapsed);
         }
-    // vytvori thready pro zpracovani souboru
+    
         private Thread[] CreateThreads(string filePath, long fileSize, long chunkSize)
         {
             Thread[] threads = new Thread[_threadCount];
@@ -64,21 +64,21 @@ namespace ParallelProcessor
             return threads;
         }
 
-        // spusti thready
+        
         private void StartThreads(Thread[] threads)
         {
             foreach (var thread in threads)
                 thread.Start();
         }
 
-        // ceka na dokonceni thready
+        
         private void WaitForThreads(Thread[] threads)
         {
             foreach (var thread in threads)
                 thread.Join();
         }
 
-        // vypise vysledky
+        
         private void PrintResults(TimeSpan elapsed)
         {
             _logger.Log(new string('-', 40));
@@ -109,11 +109,9 @@ namespace ParallelProcessor
             _logger.Log($"CELKEM: {totalLines} radku, {totalWords} slov");
             _logger.Log($"Cas: {elapsed.TotalMilliseconds:F0} ms");
 
-            // TOP 10 nejcastejsich slov
             PrintTopWords(totalFrequency, 10);
         }
 
-        // seradi slova podle frekvence a vypise TOP N
         private void PrintTopWords(Dictionary<string, int> frequency, int count) // nejcastejsi slova
         {
             _logger.Log("");

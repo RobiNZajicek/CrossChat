@@ -5,12 +5,12 @@ using System.Threading;
 
 namespace ParallelProcessor
 {
-    // zpracovava jednu cast souboru - kazdy thread ma svoji instanci
+    
     public class ChunkProcessor
     {
         private readonly string _filePath;
-        private readonly long _startPos;    // zacatek cteni 
-        private readonly long _endPos;      // konec cteni
+        private readonly long _startPos;    
+        private readonly long _endPos;     
         private readonly ConsoleLogger _logger;
 
         public ChunkProcessor(string filePath, long startPos, long endPos, ConsoleLogger logger)
@@ -21,7 +21,6 @@ namespace ParallelProcessor
             _logger = logger;
         }
 
-        // zpracuje cast a vrati vysledek 
         public AnalysisResult Process()
         {
             var result = new AnalysisResult();
@@ -57,7 +56,6 @@ namespace ParallelProcessor
             return result;
         }
 
-        // preskoci na zacatek dalsiho radku
         private void SkipToNextLine(FileStream stream)
         {
             int b;

@@ -20,7 +20,7 @@ namespace ParallelProcessor
             analyzer.Analyze(filePath);
         }
 
-        // ziska cestu k souboru z argumentu nebo vytvori testovaci
+        
         static string GetFilePath(string[] args, ConsoleLogger logger)
         {
             if (args.Length > 0 && File.Exists(args[0]))
@@ -38,14 +38,13 @@ namespace ParallelProcessor
             return testFile;
         }
 
-        // ziska pocet threadu z argumentu nebo pouzije 4
         static int GetThreadCount(string[] args)
         {
             if (args.Length > 1 && int.TryParse(args[1], out int count))
             {
-                return Math.Max(1, Math.Min(count, 16));  // 1-16 threadu
+                return Math.Max(1, Math.Min(count, 16));  
             }
-            return 4;  // vychozi
+            return 4;  
         }
     }
 }

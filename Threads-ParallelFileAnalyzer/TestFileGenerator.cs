@@ -4,17 +4,17 @@ using System.IO;
 
 namespace ParallelProcessor
 {
-    // generuje testovaci soubory s nahodnymi slovy
+    
     public static class TestFileGenerator
     {
-        // vzorova slova pro generovani
+    
         private static readonly string[] Words = {
             "parallel", "thread", "process", "lock", "sync",
             "data", "file", "read", "write", "buffer",
             "queue", "worker", "task", "result", "count"
         };
 
-        // vytvori soubor s nahodnymi radky
+    
         public static void Create(string path, int lineCount)
         {
             var random = new Random();
