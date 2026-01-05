@@ -42,7 +42,7 @@ namespace ParallelProcessor
             // agregace a vypis vysledku
             PrintResults(elapsed);
         }
-
+    // vytvori thready pro zpracovani souboru
         private Thread[] CreateThreads(string filePath, long fileSize, long chunkSize)
         {
             Thread[] threads = new Thread[_threadCount];
@@ -64,18 +64,21 @@ namespace ParallelProcessor
             return threads;
         }
 
+        // spusti thready
         private void StartThreads(Thread[] threads)
         {
             foreach (var thread in threads)
                 thread.Start();
         }
 
+        // ceka na dokonceni thready
         private void WaitForThreads(Thread[] threads)
         {
             foreach (var thread in threads)
                 thread.Join();
         }
 
+        // vypise vysledky
         private void PrintResults(TimeSpan elapsed)
         {
             _logger.Log(new string('-', 40));
@@ -111,7 +114,7 @@ namespace ParallelProcessor
         }
 
         // seradi slova podle frekvence a vypise TOP N
-        private void PrintTopWords(Dictionary<string, int> frequency, int count)
+        private void PrintTopWords(Dictionary<string, int> frequency, int count) // nejcastejsi slova
         {
             _logger.Log("");
             _logger.Log("=== TOP 10 NEJCASTEJSICH SLOV ===");
