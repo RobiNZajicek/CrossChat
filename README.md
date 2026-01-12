@@ -4,28 +4,46 @@
 
 ---
 
+# ⚠️ DŮLEŽITÉ - AKTUÁLNÍ VERZE PROJEKTU D1
+
+## 🔗 **E-SHOP PROJEKT JE V JINÉM REPOZITÁŘI!**
+
+| Projekt | Aktuální repozitář |
+|---------|-------------------|
+| **D1 - E-Shop** | 👉 **[github.com/RobiNZajicek/basic_eshop_for_school](https://github.com/RobiNZajicek/basic_eshop_for_school)** 👈 |
+
+**Verze v tomto repozitáři (D1-Eshop-Database/) je ZASTARALÁ!**
+
+Pro aktuální verzi s kompletní dokumentací, testy a PDF soubory navštivte:
+### **https://github.com/RobiNZajicek/basic_eshop_for_school**
+
+---
+
 ## 🗂️ Obsah Portfolio
 
-Toto repo obsahuje dva skolni projekty:
+Toto repo obsahuje skolni projekty:
 
-| # | Projekt | Typ | Slozka | Popis |
-|---|---------|-----|--------|-------|
-| 1 | **D1 - E-Shop** | Databaze | [D1-Eshop-Database/](./D1-Eshop-Database/) | E-shop s Repository Pattern |
+| # | Projekt | Typ | Odkaz | Popis |
+|---|---------|-----|-------|-------|
+| 1 | **D1 - E-Shop** | Databaze | 🔗 **[basic_eshop_for_school](https://github.com/RobiNZajicek/basic_eshop_for_school)** | E-shop s Repository Pattern |
 | 2 | **Threads** | Paralelni programovani | [Threads-ParallelFileAnalyzer/](./Threads-ParallelFileAnalyzer/) | Multi-threaded file analyzer |
 
 ---
 
 ## 📦 Projekt 1: D1 - E-Shop (Databazovy projekt)
 
-**Oznaceni:** D1 - Repository Pattern  
-**Dokumentace:** [D1-Eshop-Database/README.md](./D1-Eshop-Database/README.md)
+# ⚠️ PŘESUNUT DO SAMOSTATNÉHO REPOZITÁŘE!
+
+### 👉 [https://github.com/RobiNZajicek/basic_eshop_for_school](https://github.com/RobiNZajicek/basic_eshop_for_school) 👈
+
+**Oznaceni:** D1 - Repository Pattern
 
 ### Pouzite technologie
 
 | Vrstva | Technologie |
 |--------|-------------|
 | Backend | Python Flask, pyodbc |
-| Frontend | Next.js 16, React |
+| Frontend | React + Vite |
 | Databaze | Microsoft SQL Server |
 | Pattern | **Repository Pattern (D1)** |
 
@@ -39,33 +57,7 @@ Toto repo obsahuje dva skolni projekty:
 - ✅ **Transakce** - prevod kreditu, vytvoreni objednavky
 - ✅ **Report** z 3+ tabulek
 - ✅ **Import z JSON**
-- ✅ **3x testovaci scenar** + kompletni dokumentace
-
-### Struktura
-
-```
-D1-Eshop-Database/
-├── README.md
-├── doc/
-│   ├── DOKUMENTACE.md          ← 1000+ radku dokumentace
-│   ├── test_scenario_1_installation.md
-│   ├── test_scenario_2_functions.md
-│   └── test_scenario_3_errors.md
-├── src/
-│   ├── backend/                ← Flask API + Repository Pattern
-│   │   ├── app.py
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   └── repositories/
-│   │       ├── base_repository.py
-│   │       ├── product_repository.py
-│   │       ├── category_repository.py
-│   │       ├── user_repository.py
-│   │       └── order_repository.py
-│   ├── sql/                    ← DDL skripty pro databazi
-│   └── app/                    ← Next.js frontend
-└── requirements.txt
-```
+- ✅ **3x testovaci scenar** + kompletni dokumentace (PDF)
 
 ---
 
@@ -117,25 +109,7 @@ Threads-ParallelFileAnalyzer/
 └── README.md
 ```
 
----
-
-## 🚀 Jak spustit
-
-### Projekt 1: E-Shop
-
-```bash
-# Backend
-cd D1-Eshop-Database/src/backend
-pip install -r ../../requirements.txt
-python app.py
-
-# Frontend (v novem terminalu)
-cd D1-Eshop-Database
-npm install
-npm run dev
-```
-
-### Projekt 2: Parallel File Analyzer
+### Jak spustit
 
 ```bash
 cd Threads-ParallelFileAnalyzer
