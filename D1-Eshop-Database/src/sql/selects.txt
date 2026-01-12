@@ -1,6 +1,0 @@
-SELECT * FROM v_order_details WHERE order_id = 1;
-
-
-SELECT * FROM v_product_stats;
-
-SELECT * FROM v_product_stats;
