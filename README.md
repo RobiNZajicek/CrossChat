@@ -9,6 +9,7 @@
 | Co hledáš? | Kde to je? |
 |------------|------------|
 | **D1 - E-Shop (Databáze, Repository Pattern)** | 🔗 **[basic_eshop_for_school](https://github.com/RobiNZajicek/basic_eshop_for_school)** |
+| **P2P Projekt** | 🔗 [p2p](https://github.com/RobiNZajicek/p2p) |
 | **Threads (Paralelní programování)** | 📁 [Threads-ParallelFileAnalyzer/](./Threads-ParallelFileAnalyzer/) |
 
 ---
@@ -62,6 +63,12 @@
 cd Threads-ParallelFileAnalyzer
 dotnet run
 ```
+
+---
+
+## 🌐 Projekt 3: P2P
+
+**Repozitář:** 🔗 [github.com/RobiNZajicek/p2p](https://github.com/RobiNZajicek/p2p)
 
 ---
 
